@@ -199,6 +199,15 @@
     #leaderboard h3 { font-family: 'Cinzel', serif; font-size: 0.9rem; color: #c8b69e; margin-bottom: 8px; border-bottom: 1px solid #2c2520; padding-bottom: 4px; }
     .lb-row { display: flex; justify-content: space-between; font-size: 0.81rem; margin: 4px 0; color: #94a3b8; }
     .lb-row.me { color: #2dd4bf; font-weight: 600; }
+    
+    #minimapCanvas {
+      position: absolute; top: 16px; left: 16px;
+      width: 145px; height: 145px;
+      background: rgba(8, 13, 19, 0.92);
+      border: 1.5px solid #3b3026;
+      border-radius: 6px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.8);
+    }
 
     #relics-panel {
       position: absolute; top: 175px; left: 16px;
@@ -388,6 +397,8 @@
 
   <!-- HUD IN PARTITA -->
   <div id="hud">
+    <canvas id="minimapCanvas" width="145" height="145"></canvas>
+    
     <div id="leaderboard">
       <h3>TERRORE DEI MARI</h3>
       <div id="lb-list"></div>
@@ -1930,42 +1941,40 @@
       drawMinimap();
     }
 
+    const mmCanvas = document.getElementById('minimapCanvas');
+    const mmCtx = mmCanvas.getContext('2d');
+
     function drawMinimap() {
       const size = 145;
-      const pad = 16;
-      ctx.save();
-      ctx.translate(pad, pad);
+      mmCtx.clearRect(0, 0, size, size);
 
-      ctx.fillStyle = 'rgba(8, 13, 19, 0.9)';
-      ctx.strokeStyle = '#3b3026';
-      ctx.lineWidth = 1.5;
-      ctx.fillRect(0, 0, size, size);
-      ctx.strokeRect(0, 0, size, size);
-
+      // Cerchio Tempesta
       const st = gameState.storm;
-      ctx.strokeStyle = '#ef4444';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.arc((st.x / mapSize) * size, (st.y / mapSize) * size, (st.radius / mapSize) * size, 0, Math.PI * 2);
-      ctx.stroke();
+      mmCtx.strokeStyle = '#ef4444';
+      mmCtx.lineWidth = 1.2;
+      mmCtx.beginPath();
+      mmCtx.arc((st.x / mapSize) * size, (st.y / mapSize) * size, (st.radius / mapSize) * size, 0, Math.PI * 2);
+      mmCtx.stroke();
 
+      // Portale di Estrazione Verde
       if (gameState.extractionPortal && gameState.extractionPortal.active) {
-        ctx.strokeStyle = '#4ade80';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(
+        mmCtx.strokeStyle = '#4ade80';
+        mmCtx.lineWidth = 2;
+        mmCtx.beginPath();
+        mmCtx.arc(
           (gameState.extractionPortal.x / mapSize) * size,
           (gameState.extractionPortal.y / mapSize) * size,
           4.5,
           0,
           Math.PI * 2
         );
-        ctx.stroke();
+        mmCtx.stroke();
       }
 
+      // Mercante Nero Viola
       if (gameState.blackMerchant) {
-        ctx.fillStyle = '#e879f9';
-        ctx.fillRect(
+        mmCtx.fillStyle = '#e879f9';
+        mmCtx.fillRect(
           (gameState.blackMerchant.x / mapSize) * size - 2.5,
           (gameState.blackMerchant.y / mapSize) * size - 2.5,
           5,
@@ -1973,23 +1982,25 @@
         );
       }
 
+      // Isola del Tesoro
       if (gameState.treasureIsland && gameState.treasureIsland.active) {
-        ctx.strokeStyle = '#facc15';
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.arc(
+        mmCtx.strokeStyle = '#facc15';
+        mmCtx.lineWidth = 1.5;
+        mmCtx.beginPath();
+        mmCtx.arc(
           (gameState.treasureIsland.x / mapSize) * size,
           (gameState.treasureIsland.y / mapSize) * size,
           5,
           0,
           Math.PI * 2
         );
-        ctx.stroke();
+        mmCtx.stroke();
       }
 
+      // Galeone Imperiale
       if (gameState.treasureGalleon && gameState.treasureGalleon.active) {
-        ctx.fillStyle = '#fde047';
-        ctx.fillRect(
+        mmCtx.fillStyle = '#fde047';
+        mmCtx.fillRect(
           (gameState.treasureGalleon.x / mapSize) * size - 3,
           (gameState.treasureGalleon.y / mapSize) * size - 3,
           6,
@@ -1997,28 +2008,29 @@
         );
       }
 
+      // Boss Leviatano
       if (gameState.boss && gameState.boss.alive) {
-        ctx.fillStyle = gameState.boss.enraged ? '#f43f5e' : '#c084fc';
-        ctx.beginPath();
-        ctx.arc((gameState.boss.x / mapSize) * size, (gameState.boss.y / mapSize) * size, 5, 0, Math.PI * 2);
-        ctx.fill();
+        mmCtx.fillStyle = gameState.boss.enraged ? '#f43f5e' : '#c084fc';
+        mmCtx.beginPath();
+        mmCtx.arc((gameState.boss.x / mapSize) * size, (gameState.boss.y / mapSize) * size, 5, 0, Math.PI * 2);
+        mmCtx.fill();
       }
 
+      // Reliquie
       (gameState.relics || []).forEach(rel => {
-        ctx.fillStyle = '#eab308';
-        ctx.beginPath();
-        ctx.arc((rel.x / mapSize) * size, (rel.y / mapSize) * size, 2.5, 0, Math.PI * 2);
-        ctx.fill();
+        mmCtx.fillStyle = '#eab308';
+        mmCtx.beginPath();
+        mmCtx.arc((rel.x / mapSize) * size, (rel.y / mapSize) * size, 2.5, 0, Math.PI * 2);
+        mmCtx.fill();
       });
 
+      // Navi
       Object.values(gameState.players).forEach(p => {
-        ctx.fillStyle = p.isMostWanted ? '#facc15' : (p.id === myId ? '#2dd4bf' : (p.isBot ? '#a855f7' : '#f87171'));
-        ctx.beginPath();
-        ctx.arc((p.x / mapSize) * size, (p.y / mapSize) * size, p.id === myId || p.isMostWanted ? 3.8 : 2.2, 0, Math.PI * 2);
-        ctx.fill();
+        mmCtx.fillStyle = p.isMostWanted ? '#facc15' : (p.id === myId ? '#2dd4bf' : (p.isBot ? '#a855f7' : '#f87171'));
+        mmCtx.beginPath();
+        mmCtx.arc((p.x / mapSize) * size, (p.y / mapSize) * size, p.id === myId || p.isMostWanted ? 3.8 : 2.2, 0, Math.PI * 2);
+        mmCtx.fill();
       });
-
-      ctx.restore();
     }
 
     render();
