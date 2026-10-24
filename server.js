@@ -11,12 +11,10 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 const MAP_SIZE = 4000;
 const TICK_RATE = 30;
-const MAX_SOULS = 130;
-const BOT_COUNT = 6;
+const MAX_SOULS = 110;
 const ROCK_COUNT = 18;
-const MAX_CONSUMABLES = 12;
+const MAX_CONSUMABLES = 10;
 
-// Durata Ciclo Lobby: 6 Minuti di battaglia + 10 Secondi di Podio/Reset
 const MATCH_DURATION_MS = 6 * 60 * 1000;
 const INTERMISSION_MS = 10 * 1000;
 
@@ -28,17 +26,18 @@ let relics = [];
 let consumables = [];
 let seaMines = [];
 
-// Stato Globale della Lobby & Meteo
+// Coda di Respawn Ritardato per i Bot (evita il respawn istantaneo)
+let botRespawnCooldownUntil = 0;
+
 let lobbyState = {
-  phase: 'playing', // 'playing' | 'eclipse' | 'intermission'
+  phase: 'playing',
   matchEndTime: Date.now() + MATCH_DURATION_MS,
   intermissionEndTime: 0,
-  weather: 'calm', // 'calm' | 'gale' | 'bloodfog'
+  weather: 'calm',
   nextWeatherChange: Date.now() + 75000,
   podium: []
 };
 
-// Portale di Estrazione ("Fuga dall'Abisso")
 let extractionPortal = {
   active: false,
   x: 2800,
@@ -47,7 +46,6 @@ let extractionPortal = {
   nextSpawnTime: Date.now() + 45000
 };
 
-// Mercante Nero ("Il Traghettatore d'Ossa")
 let blackMerchant = {
   x: 1100,
   y: 2900,
@@ -131,8 +129,8 @@ function generateMapRocks() {
   for (let i = 0; i < ROCK_COUNT; i++) {
     let rx, ry, distCenter;
     do {
-      rx = Math.random() * (MAP_SIZE - 500) + 250;
-      ry = Math.random() * (MAP_SIZE - 500) + 250;
+      rx = Math.round(Math.random() * (MAP_SIZE - 500) + 250);
+      ry = Math.round(Math.random() * (MAP_SIZE - 500) + 250);
       distCenter = Math.hypot(rx - MAP_SIZE / 2, ry - MAP_SIZE / 2);
     } while (distCenter < 460);
 
@@ -141,16 +139,25 @@ function generateMapRocks() {
       x: rx,
       y: ry,
       radius: Math.floor(Math.random() * 35) + 45,
-      seed: Math.random() * 100
+      seed: Number((Math.random() * 100).toFixed(2))
     });
   }
 }
 
 function spawnSoul(x = null, y = null, value = 18, isBossDrop = false) {
+  // Genera anime solo all'interno del cerchio attuale della tempesta
+  let sx = x;
+  let sy = y;
+  if (sx === null || sy === null) {
+    const a = Math.random() * Math.PI * 2;
+    const r = Math.random() * Math.max(300, storm.radius * 0.88);
+    sx = Math.max(150, Math.min(MAP_SIZE - 150, storm.x + Math.cos(a) * r));
+    sy = Math.max(150, Math.min(MAP_SIZE - 150, storm.y + Math.sin(a) * r));
+  }
   souls.push({
-    id: Math.random().toString(36).substr(2, 9),
-    x: x !== null ? x : Math.random() * (MAP_SIZE - 400) + 200,
-    y: y !== null ? y : Math.random() * (MAP_SIZE - 400) + 200,
+    id: Math.random().toString(36).substr(2, 6),
+    x: Math.round(sx),
+    y: Math.round(sy),
     value,
     isBossDrop
   });
@@ -158,10 +165,12 @@ function spawnSoul(x = null, y = null, value = 18, isBossDrop = false) {
 
 function spawnConsumable() {
   const t = CONSUMABLE_TYPES[Math.floor(Math.random() * CONSUMABLE_TYPES.length)];
+  const a = Math.random() * Math.PI * 2;
+  const r = 250 + Math.random() * Math.max(250, storm.radius * 0.75);
   consumables.push({
-    uid: Math.random().toString(36).substr(2, 9),
-    x: Math.random() * (MAP_SIZE - 600) + 300,
-    y: Math.random() * (MAP_SIZE - 600) + 300,
+    uid: Math.random().toString(36).substr(2, 6),
+    x: Math.round(storm.x + Math.cos(a) * r),
+    y: Math.round(storm.y + Math.sin(a) * r),
     ...t
   });
 }
@@ -171,18 +180,55 @@ function spawnRelicDrop(x, y, forceMythic = false) {
     ? BOSS_MYTHIC_RELIC
     : RELIC_TYPES[Math.floor(Math.random() * RELIC_TYPES.length)];
   relics.push({
-    uid: Math.random().toString(36).substr(2, 9),
-    x,
-    y,
+    uid: Math.random().toString(36).substr(2, 6),
+    x: Math.round(x),
+    y: Math.round(y),
     ...template
   });
 }
 
-const botNames = ['Vascello di Caronte', 'Olandese Nero', 'Spina Abissale', 'Mietitore Salmastro', 'Regina delle Ossa', 'Furia di Sangue'];
+const botNames = [
+  'Vascello di Caronte',
+  'Olandese Nero',
+  'Spina Abissale',
+  'Mietitore Salmastro',
+  'Regina delle Ossa',
+  'Furia di Sangue'
+];
+
+// Trova il punto di spawn più isolato possibile (lontano da giocatori, altri bot e dal Boss)
+function findBestSpawnPosition() {
+  let bestX = storm.x + 600;
+  let bestY = storm.y + 600;
+  let maxMinDist = -1;
+
+  const minAllowedRadius = 420;
+  const maxAllowedRadius = Math.max(520, storm.radius * 0.78);
+
+  for (let attempt = 0; attempt < 12; attempt++) {
+    const a = Math.random() * Math.PI * 2;
+    const dist = minAllowedRadius + Math.random() * (maxAllowedRadius - minAllowedRadius);
+    const cx = Math.max(160, Math.min(MAP_SIZE - 160, storm.x + Math.cos(a) * dist));
+    const cy = Math.max(160, Math.min(MAP_SIZE - 160, storm.y + Math.sin(a) * dist));
+
+    let nearestShipDist = 99999;
+    for (let id in players) {
+      const p = players[id];
+      const d = Math.hypot(p.x - cx, p.y - cy);
+      if (d < nearestShipDist) nearestShipDist = d;
+    }
+
+    if (nearestShipDist > maxMinDist) {
+      maxMinDist = nearestShipDist;
+      bestX = cx;
+      bestY = cy;
+    }
+  }
+  return { x: Math.round(bestX), y: Math.round(bestY) };
+}
 
 function createShip(id, name, isBot = false, meta = {}) {
-  const angle = Math.random() * Math.PI * 2;
-  const dist = 520 + Math.random() * (storm.radius * 0.55);
+  const spawnPos = findBestSpawnPosition();
 
   const hullLv = Math.min(10, Math.max(0, Number(meta.hullLv) || 0));
   const cannonLv = Math.min(10, Math.max(0, Number(meta.cannonLv) || 0));
@@ -197,12 +243,12 @@ function createShip(id, name, isBot = false, meta = {}) {
     id,
     name: name || 'Pirata Maledetto',
     isBot,
-    meta, // Memorizzato per il reset automatico della lobby
+    meta,
     skin: meta.skin || (isBot ? 'void' : 'emerald'),
     shipClass: null,
-    x: storm.x + Math.cos(angle) * dist,
-    y: storm.y + Math.sin(angle) * dist,
-    angle: Math.random() * Math.PI * 2,
+    x: spawnPos.x,
+    y: spawnPos.y,
+    angle: Number((Math.random() * Math.PI * 2).toFixed(3)),
     speed: 0,
     baseMaxSpeed: baseSpeed,
     maxSpeed: baseSpeed,
@@ -224,7 +270,7 @@ function createShip(id, name, isBot = false, meta = {}) {
     kills: 0,
     soulsCollected: 0,
     isMostWanted: false,
-    extractProgress: 0, // 0..100% dentro il Portale di Estrazione
+    extractProgress: 0,
     emote: null,
     emoteUntil: 0,
     lastMerchantUse: 0,
@@ -247,8 +293,57 @@ function createShip(id, name, isBot = false, meta = {}) {
     armorBonus: 0,
     ramCooldownUntil: 0,
     inputs: { up: false, down: false, left: false, right: false },
-    botTimer: 0
+    botTimer: Math.floor(Math.random() * 100),
+    patrolAngle: Math.random() * Math.PI * 2
   };
+}
+
+// =========================================================
+// AI DIRECTOR: POPOLAZIONE BOT DINAMICA IN BASE ALLO SPAZIO
+// =========================================================
+function getTargetBotCount() {
+  const allShips = Object.values(players);
+  const humanCount = allShips.filter(p => !p.isBot).length;
+
+  // Calcola quanti vascelli può ospitare comodamente il cerchio attuale della tempesta
+  // All'inizio (raggio ~2700) maxShips = 5. A metà (raggio ~1400) = 3. In finale (<800) = 1.
+  const areaRatio = Math.max(0.18, storm.radius / (MAP_SIZE * 0.68));
+  let maxComfortableShips = Math.max(2, Math.round(5 * areaRatio));
+
+  if (lobbyState.phase === 'eclipse') {
+    maxComfortableShips = Math.min(2, maxComfortableShips);
+  }
+
+  return Math.max(1, maxComfortableShips - humanCount);
+}
+
+function manageBotPopulation(now) {
+  if (lobbyState.phase === 'intermission') return;
+
+  const targetBots = getTargetBotCount();
+  const currentBots = Object.values(players).filter(p => p.isBot);
+
+  // 1. Se siamo sotto il numero target e il cooldown di respawn è passato, genera 1 Bot lontano dagli altri
+  if (currentBots.length < targetBots && now >= botRespawnCooldownUntil) {
+    const usedNames = new Set(currentBots.map(b => b.name));
+    const availableName = botNames.find(n => !usedNames.has(n)) || 'Spettro Errante';
+    const botId = `bot_${Math.random().toString(36).substr(2, 5)}`;
+    players[botId] = createShip(botId, availableName, true);
+    botRespawnCooldownUntil = now + 7500; // Almeno 7.5s prima del prossimo spawn
+  }
+
+  // 2. Se il cerchio si è ristretto e ci sono TROPPI bot, fa ritirare nell'abisso il bot più lontano e debole
+  if (currentBots.length > targetBots) {
+    const humanList = Object.values(players).filter(p => !p.isBot);
+    for (let b of currentBots) {
+      const closeToHuman = humanList.some(h => Math.hypot(h.x - b.x, h.y - b.y) < 620);
+      // Rimuove solo un bot che non è attualmente ingaggiato a schermo con un giocatore
+      if (!closeToHuman) {
+        delete players[b.id];
+        break;
+      }
+    }
+  }
 }
 
 // =========================================================
@@ -258,7 +353,6 @@ function triggerLobbyIntermission() {
   lobbyState.phase = 'intermission';
   lobbyState.intermissionEndTime = Date.now() + INTERMISSION_MS;
 
-  // Calcola il Podio dei migliori 3 Vascelli della spedizione
   const sorted = Object.values(players).sort((a, b) => (b.level * 100 + b.kills * 60) - (a.level * 100 + a.kills * 60));
   const podiumRewards = [150, 80, 40];
 
@@ -307,23 +401,22 @@ function resetEntireLobby() {
   extractionPortal.active = false;
   extractionPortal.nextSpawnTime = now + 45000;
 
-  blackMerchant.x = 900 + Math.random() * 2200;
-  blackMerchant.y = 900 + Math.random() * 2200;
+  blackMerchant.x = Math.round(900 + Math.random() * 2200);
+  blackMerchant.y = Math.round(900 + Math.random() * 2200);
 
-  // Rigenera tutti i giocatori umani connessi (mantenendo i loro upgrade del Porto) e i Bot al Livello 1!
+  // Rimuove i vecchi bot e rigenera solo i giocatori umani connessi
   const currentIds = Object.keys(players);
   currentIds.forEach(id => {
     const old = players[id];
-    players[id] = createShip(id, old.name, old.isBot, old.meta || {});
+    if (old.isBot) {
+      delete players[id];
+    } else {
+      players[id] = createShip(id, old.name, false, old.meta || {});
+    }
   });
 
-  // Assicura che i Bot siano sempre presenti
-  for (let i = 0; i < BOT_COUNT; i++) {
-    const botId = `bot_${i}`;
-    if (!players[botId]) {
-      players[botId] = createShip(botId, botNames[i], true);
-    }
-  }
+  // L'AI Director ripopolerà gradualmente i bot
+  botRespawnCooldownUntil = now + 1500;
 
   io.emit('lobbyReset', { rocks });
   io.emit('worldAnnouncement', {
@@ -333,14 +426,9 @@ function resetEntireLobby() {
   });
 }
 
-// Inizializzazione Avvio Server
 generateMapRocks();
 for (let i = 0; i < MAX_SOULS; i++) spawnSoul();
 for (let i = 0; i < MAX_CONSUMABLES; i++) spawnConsumable();
-for (let i = 0; i < BOT_COUNT; i++) {
-  const botId = `bot_${i}`;
-  players[botId] = createShip(botId, botNames[i], true);
-}
 
 function recalculateShipStats(p) {
   let maxHp = p.baseMaxHp + (p.level - 1) * 12 + p.statUpgrades.hull * 30;
@@ -420,8 +508,8 @@ function handleRelicPickup(p, relic) {
       existing.level++;
       recalculateShipStats(p);
       io.emit('dmgNum', {
-        x: p.x,
-        y: p.y - 38,
+        x: Math.round(p.x),
+        y: Math.round(p.y - 38),
         text: `⬆️ ${relic.icon} ${relic.name} GRADO ${existing.level}!`,
         color: '#facc15'
       });
@@ -430,7 +518,7 @@ function handleRelicPickup(p, relic) {
     } else {
       p.xp += 45;
       p.hp = Math.min(p.maxHp, p.hp + 30);
-      io.emit('dmgNum', { x: p.x, y: p.y - 35, text: `✨ Reliquia Max (+45 XP)`, color: '#5eead4' });
+      io.emit('dmgNum', { x: Math.round(p.x), y: Math.round(p.y - 35), text: `✨ Reliquia Max (+45 XP)`, color: '#5eead4' });
       return true;
     }
   }
@@ -445,7 +533,7 @@ function handleRelicPickup(p, relic) {
       desc: relic.baseDesc
     });
     recalculateShipStats(p);
-    io.emit('dmgNum', { x: p.x, y: p.y - 35, text: `${relic.icon} ${relic.name}!`, color: relic.color });
+    io.emit('dmgNum', { x: Math.round(p.x), y: Math.round(p.y - 35), text: `${relic.icon} ${relic.name}!`, color: relic.color });
     if (!p.isBot) io.to(p.id).emit('questEvent', { type: 'relic', amount: 1, doubloons: 5 });
     return true;
   }
@@ -468,19 +556,19 @@ function handleRelicPickup(p, relic) {
     desc: relic.baseDesc
   };
   p.pendingRelicUntil = Date.now() + 8000;
-  io.emit('dmgNum', { x: p.x, y: p.y - 35, text: `🎒 Inventario Pieno! Scegli Slot [Z/X/C]`, color: '#fbbf24' });
+  io.emit('dmgNum', { x: Math.round(p.x), y: Math.round(p.y - 35), text: `🎒 Inventario Pieno! Scegli Slot [Z/X/C]`, color: '#fbbf24' });
   return true;
 }
 
 function emitDamageNumber(x, y, amount, color = '#f87171', prefix = '') {
-  io.emit('dmgNum', { x, y, text: `${prefix}${Math.round(amount)}`, color });
+  io.emit('dmgNum', { x: Math.round(x), y: Math.round(y), text: `${prefix}${Math.round(amount)}`, color });
 }
 
 function interruptRepair(ship, reasonText = 'Riparazione Interrotta!') {
   if (!ship.isRepairing) return;
   ship.isRepairing = false;
   ship.repairUntil = 0;
-  io.emit('dmgNum', { x: ship.x, y: ship.y - 30, text: reasonText, color: '#fb923c' });
+  io.emit('dmgNum', { x: Math.round(ship.x), y: Math.round(ship.y - 30), text: reasonText, color: '#fb923c' });
 }
 
 function getSkinBulletColor(skin, shipClass, isHellfire) {
@@ -520,18 +608,18 @@ function fireBroadsides(ship) {
         isBossBullet: false,
         homing: false,
         lifestealRatio: ship.lifestealBonus,
-        x: ship.x + Math.cos(fireAngle) * 30,
-        y: ship.y + Math.sin(fireAngle) * 30,
+        x: Math.round(ship.x + Math.cos(fireAngle) * 30),
+        y: Math.round(ship.y + Math.sin(fireAngle) * 30),
         vx: Math.cos(fireAngle) * bulletSpeed + Math.cos(ship.angle) * (ship.speed * 0.3),
         vy: Math.sin(fireAngle) * bulletSpeed + Math.sin(ship.angle) * (ship.speed * 0.3),
         damage: ship.damage * dmgMult,
         color: getSkinBulletColor(ship.skin, ship.shipClass, isHellfire),
-        life: 60
+        life: 58
       });
     });
   });
 
-  io.emit('cannonFired', { x: ship.x, y: ship.y, id: ship.id });
+  io.emit('cannonFired', { x: Math.round(ship.x), y: Math.round(ship.y), id: ship.id });
 }
 
 function useConsumableItem(ship) {
@@ -542,28 +630,27 @@ function useConsumableItem(ship) {
 
   if (item.id === 'mine') {
     seaMines.push({
-      id: Math.random().toString(36).substr(2, 9),
+      id: Math.random().toString(36).substr(2, 6),
       ownerId: ship.id,
-      x: ship.x - Math.cos(ship.angle) * 45,
-      y: ship.y - Math.sin(ship.angle) * 45,
+      x: Math.round(ship.x - Math.cos(ship.angle) * 45),
+      y: Math.round(ship.y - Math.sin(ship.angle) * 45),
       radius: 26,
       damage: 95,
       life: 450
     });
-    io.emit('dmgNum', { x: ship.x, y: ship.y - 30, text: '💣 Mina Piazzata!', color: '#f97316' });
+    io.emit('dmgNum', { x: Math.round(ship.x), y: Math.round(ship.y - 30), text: '💣 Mina Piazzata!', color: '#f97316' });
   } else if (item.id === 'nitro') {
     ship.nitroUntil = now + 2500;
     ship.speed = ship.maxSpeed * 1.9;
-    io.emit('abilityFx', { x: ship.x, y: ship.y, type: 'phantom' });
-    io.emit('dmgNum', { x: ship.x, y: ship.y - 30, text: '💨 Vento Stregato!', color: '#38bdf8' });
+    io.emit('abilityFx', { x: Math.round(ship.x), y: Math.round(ship.y), type: 'phantom' });
+    io.emit('dmgNum', { x: Math.round(ship.x), y: Math.round(ship.y - 30), text: '💨 Vento Stregato!', color: '#38bdf8' });
   } else if (item.id === 'hellfire') {
     ship.hellfireCharged = true;
     ship.lastShot = 0;
-    io.emit('dmgNum', { x: ship.x, y: ship.y - 30, text: '🧪 Fuoco Greco Pronto!', color: '#a855f7' });
+    io.emit('dmgNum', { x: Math.round(ship.x), y: Math.round(ship.y - 30), text: '🧪 Fuoco Greco Pronto!', color: '#a855f7' });
   }
 }
 
-// Interazione col Mercante Nero [F]: Sacrifica il 35% degli HP per una Reliquia Maledetta
 function interactBlackMerchant(ship) {
   const now = Date.now();
   if (now - ship.lastMerchantUse < 8000) return;
@@ -572,7 +659,7 @@ function interactBlackMerchant(ship) {
 
   const hpCost = Math.round(ship.maxHp * 0.32);
   if (ship.hp <= hpCost + 15) {
-    io.emit('dmgNum', { x: ship.x, y: ship.y - 30, text: '❌ Troppi pochi HP per il Patto!', color: '#ef4444' });
+    io.emit('dmgNum', { x: Math.round(ship.x), y: Math.round(ship.y - 30), text: '❌ Troppi pochi HP per il Patto!', color: '#ef4444' });
     return;
   }
 
@@ -580,7 +667,7 @@ function interactBlackMerchant(ship) {
   ship.hp -= hpCost;
   const randomRelic = RELIC_TYPES[Math.floor(Math.random() * RELIC_TYPES.length)];
   handleRelicPickup(ship, randomRelic);
-  io.emit('dmgNum', { x: ship.x, y: ship.y - 50, text: `⚖️ Patto di Sangue (-${hpCost} HP)`, color: '#c084fc' });
+  io.emit('dmgNum', { x: Math.round(ship.x), y: Math.round(ship.y - 50), text: `⚖️ Patto di Sangue (-${hpCost} HP)`, color: '#c084fc' });
 }
 
 function activateAbility(ship) {
@@ -592,10 +679,10 @@ function activateAbility(ship) {
   if (ship.shipClass === 'juggernaut') {
     ship.activeBuffUntil = now + 1700;
     ship.speed = ship.maxSpeed * 2.2;
-    io.emit('abilityFx', { x: ship.x, y: ship.y, type: 'juggernaut' });
+    io.emit('abilityFx', { x: Math.round(ship.x), y: Math.round(ship.y), type: 'juggernaut' });
   } else if (ship.shipClass === 'phantom') {
     ship.activeBuffUntil = now + 3600;
-    io.emit('abilityFx', { x: ship.x, y: ship.y, type: 'phantom' });
+    io.emit('abilityFx', { x: Math.round(ship.x), y: Math.round(ship.y), type: 'phantom' });
   } else if (ship.shipClass === 'necromancer') {
     ship.activeBuffUntil = now + 4500;
     for (let i = 0; i < 6; i++) {
@@ -605,16 +692,16 @@ function activateAbility(ship) {
         isBossBullet: false,
         homing: true,
         lifestealRatio: 0.65 + ship.lifestealBonus,
-        x: ship.x + Math.cos(a) * 36,
-        y: ship.y + Math.sin(a) * 36,
+        x: Math.round(ship.x + Math.cos(a) * 36),
+        y: Math.round(ship.y + Math.sin(a) * 36),
         vx: Math.cos(a) * 9.5,
         vy: Math.sin(a) * 9.5,
         damage: ship.damage * 1.15,
         color: '#e879f9',
-        life: 95
+        life: 90
       });
     }
-    io.emit('abilityFx', { x: ship.x, y: ship.y, type: 'necromancer' });
+    io.emit('abilityFx', { x: Math.round(ship.x), y: Math.round(ship.y), type: 'necromancer' });
   }
 }
 
@@ -626,7 +713,7 @@ function startShipRepair(ship) {
   ship.lastRepair = now;
   ship.isRepairing = true;
   ship.repairUntil = now + 4000;
-  io.emit('dmgNum', { x: ship.x, y: ship.y - 30, text: '🛠️ Riparazione...', color: '#4ade80' });
+  io.emit('dmgNum', { x: Math.round(ship.x), y: Math.round(ship.y - 30), text: '🛠️ Riparazione...', color: '#4ade80' });
 }
 
 function applyClassEvolution(p, chosenClass) {
@@ -690,7 +777,7 @@ io.on('connection', (socket) => {
       p.inventory[idx] = p.pendingRelic;
       p.pendingRelic = null;
       recalculateShipStats(p);
-      io.emit('dmgNum', { x: p.x, y: p.y - 35, text: `🔄 Slot ${idx + 1} Aggiornato!`, color: '#5eead4' });
+      io.emit('dmgNum', { x: Math.round(p.x), y: Math.round(p.y - 35), text: `🔄 Slot ${idx + 1} Aggiornato!`, color: '#5eead4' });
     }
   });
 
@@ -717,6 +804,9 @@ io.on('connection', (socket) => {
   });
 });
 
+// =========================================================
+// NUOVA AI BOT CON SEPARAZIONE SPAZIALE (ANTI-CLUSTERING)
+// =========================================================
 function updateBotAI(bot) {
   bot.botTimer++;
   if (bot.level >= 4 && !bot.shipClass) {
@@ -735,28 +825,60 @@ function updateBotAI(bot) {
   if (bot.consumable && Math.random() < 0.02) useConsumableItem(bot);
 
   const distToCenter = Math.hypot(bot.x - storm.x, bot.y - storm.y);
-  if (distToCenter > storm.radius * 0.78) {
-    const targetAngle = Math.atan2(storm.y - bot.y, storm.x - bot.x);
-    let diff = Math.atan2(Math.sin(targetAngle - bot.angle), Math.cos(targetAngle - bot.angle));
-    bot.inputs.left = diff < -0.1;
-    bot.inputs.right = diff > 0.1;
-    bot.inputs.up = true;
-  } else {
-    bot.inputs.up = true;
-    if (bot.botTimer % 45 === 0) {
-      bot.inputs.left = Math.random() < 0.4;
-      bot.inputs.right = !bot.inputs.left && Math.random() < 0.4;
+
+  // Calcola vettore di repulsione da altri bot vicini (< 340px) e dal centro del Boss
+  let avoidX = 0;
+  let avoidY = 0;
+
+  for (let otherId in players) {
+    if (otherId === bot.id) continue;
+    const other = players[otherId];
+    const d = Math.hypot(bot.x - other.x, bot.y - other.y);
+    // I bot si respingono tra loro per non ammassarsi nella stessa zona
+    const minSpace = other.isBot ? 360 : 210;
+    if (d < minSpace && d > 1) {
+      avoidX += ((bot.x - other.x) / d) * 2.2;
+      avoidY += ((bot.y - other.y) / d) * 2.2;
     }
   }
+
+  // Evita di suicidarsi in bocca al Leviatano al centro
+  if (boss.alive) {
+    const dBoss = Math.hypot(bot.x - boss.x, bot.y - boss.y);
+    if (dBoss < 320 && dBoss > 1) {
+      avoidX += ((bot.x - boss.x) / dBoss) * 3.0;
+      avoidY += ((bot.y - boss.y) / dBoss) * 3.0;
+    }
+  }
+
+  let desiredAngle = bot.patrolAngle;
+
+  if (distToCenter > storm.radius * 0.78) {
+    // Rientra dalla tempesta
+    desiredAngle = Math.atan2(storm.y - bot.y, storm.x - bot.x);
+  } else if (Math.hypot(avoidX, avoidY) > 0.2) {
+    // Virata di separazione per mantenere le distanze
+    desiredAngle = Math.atan2(avoidY, avoidX);
+    bot.patrolAngle = desiredAngle;
+  } else if (bot.botTimer % 75 === 0) {
+    // Cambia dolcemente rotta di pattuglia
+    bot.patrolAngle += (Math.random() - 0.5) * 1.4;
+    desiredAngle = bot.patrolAngle;
+  }
+
+  const angleDiff = Math.atan2(Math.sin(desiredAngle - bot.angle), Math.cos(desiredAngle - bot.angle));
+  bot.inputs.left = angleDiff < -0.08;
+  bot.inputs.right = angleDiff > 0.08;
+  bot.inputs.up = true;
 
   if (!bot.isRepairing) {
     for (let id in players) {
       if (id === bot.id) continue;
       const target = players[id];
       const d = Math.hypot(target.x - bot.x, target.y - bot.y);
-      if (d < 430) {
+      if (d < 410) {
         fireBroadsides(bot);
-        if (bot.shipClass && Math.random() < 0.06) activateAbility(bot);
+        if (bot.shipClass && Math.random() < 0.05) activateAbility(bot);
         break;
       }
     }
@@ -766,7 +888,6 @@ function updateBotAI(bot) {
 setInterval(() => {
   const now = Date.now();
 
-  // GESTIONE FASE DI FINE PARTITA & RESET DELLA LOBBY
   if (lobbyState.phase === 'intermission') {
     if (now >= lobbyState.intermissionEndTime) {
       resetEntireLobby();
@@ -791,9 +912,11 @@ setInterval(() => {
     return;
   }
 
+  // Gestisce dinamicamente il numero di Bot in base al raggio della mappa e ai giocatori umani
+  manageBotPopulation(now);
+
   const timeRemaining = lobbyState.matchEndTime - now;
 
-  // Ultimi 60 Secondi: Attiva L'Eclissi Abissale (2x Dobloni + Tempesta Rapida)
   if (lobbyState.phase === 'playing' && timeRemaining <= 60000) {
     lobbyState.phase = 'eclipse';
     storm.shrinkSpeed = 3.2;
@@ -804,13 +927,11 @@ setInterval(() => {
     });
   }
 
-  // Scadenza Timer 6 Minuti -> Podio & Reset Lobby
   if (timeRemaining <= 0) {
     triggerLobbyIntermission();
     return;
   }
 
-  // Cambio Meteo Globale ogni 75s
   if (now >= lobbyState.nextWeatherChange) {
     lobbyState.nextWeatherChange = now + 75000;
     const weathers = ['calm', 'gale', 'bloodfog'];
@@ -831,12 +952,11 @@ setInterval(() => {
 
   const rewardMult = lobbyState.phase === 'eclipse' ? 2 : 1;
 
-  // Portale di Estrazione ("Fuga dall'Abisso")
   if (!extractionPortal.active && now >= extractionPortal.nextSpawnTime) {
     const a = Math.random() * Math.PI * 2;
     const d = 400 + Math.random() * (storm.radius * 0.55);
-    extractionPortal.x = storm.x + Math.cos(a) * d;
-    extractionPortal.y = storm.y + Math.sin(a) * d;
+    extractionPortal.x = Math.round(storm.x + Math.cos(a) * d);
+    extractionPortal.y = Math.round(storm.y + Math.sin(a) * d);
     extractionPortal.active = true;
 
     io.emit('worldAnnouncement', {
@@ -846,7 +966,6 @@ setInterval(() => {
     });
   }
 
-  // Most Wanted
   let topPlayerId = null;
   let bestScore = -1;
   for (let id in players) {
@@ -861,15 +980,14 @@ setInterval(() => {
     players[topPlayerId].isMostWanted = true;
   }
 
-  // Galeone del Tesoro Imperiale
   if (!treasureGalleon.active && now >= treasureGalleon.nextSpawnTime) {
     treasureGalleon.active = true;
     treasureGalleon.hp = treasureGalleon.maxHp;
     treasureGalleon.x = 350;
-    treasureGalleon.y = 900 + Math.random() * 2200;
+    treasureGalleon.y = Math.round(900 + Math.random() * 2200);
     treasureGalleon.targetX = MAP_SIZE - 350;
-    treasureGalleon.targetY = 900 + Math.random() * 2200;
-    treasureGalleon.angle = Math.atan2(treasureGalleon.targetY - treasureGalleon.y, treasureGalleon.targetX - treasureGalleon.x);
+    treasureGalleon.targetY = Math.round(900 + Math.random() * 2200);
+    treasureGalleon.angle = Number(Math.atan2(treasureGalleon.targetY - treasureGalleon.y, treasureGalleon.targetX - treasureGalleon.x).toFixed(3));
 
     io.emit('worldAnnouncement', {
       title: '🚢 IL GALEONE DEL TESORO IMPERIALE STA ATTRAVERSANDO L\'ABISSO!',
@@ -886,12 +1004,11 @@ setInterval(() => {
     }
   }
 
-  // Isola del Tesoro Maledetta
   if (!treasureIsland.active && now >= treasureIsland.nextSpawnTime) {
     const angle = Math.random() * Math.PI * 2;
-    const dist = 500 + Math.random() * 700;
-    treasureIsland.x = MAP_SIZE / 2 + Math.cos(angle) * dist;
-    treasureIsland.y = MAP_SIZE / 2 + Math.sin(angle) * dist;
+    const dist = 450 + Math.random() * Math.max(250, storm.radius * 0.5);
+    treasureIsland.x = Math.round(MAP_SIZE / 2 + Math.cos(angle) * dist);
+    treasureIsland.y = Math.round(MAP_SIZE / 2 + Math.sin(angle) * dist);
     treasureIsland.progress = 0;
     treasureIsland.capturingId = null;
     treasureIsland.contested = false;
@@ -949,12 +1066,11 @@ setInterval(() => {
   whirlpools.forEach(wp => {
     wp.x += wp.vx;
     wp.y += wp.vy;
-    wp.angle += 0.04;
+    wp.angle = Number((wp.angle + 0.04).toFixed(3));
     if (wp.x < 500 || wp.x > MAP_SIZE - 500) wp.vx *= -1;
     if (wp.y < 500 || wp.y > MAP_SIZE - 500) wp.vy *= -1;
   });
 
-  // Mine Abissali
   for (let i = seaMines.length - 1; i >= 0; i--) {
     const m = seaMines[i];
     m.life--;
@@ -978,7 +1094,7 @@ setInterval(() => {
 
   // Boss Leviatano
   if (boss.alive) {
-    boss.angle += boss.enraged ? 0.028 : 0.015;
+    boss.angle = Number((boss.angle + (boss.enraged ? 0.028 : 0.015)).toFixed(3));
 
     if (!boss.enraged && boss.hp <= boss.maxHp * 0.5) {
       boss.enraged = true;
@@ -1004,13 +1120,13 @@ setInterval(() => {
             ownerId: 'boss',
             isBossBullet: true,
             homing: false,
-            x: boss.x + Math.cos(a) * 70,
-            y: boss.y + Math.sin(a) * 70,
+            x: Math.round(boss.x + Math.cos(a) * 70),
+            y: Math.round(boss.y + Math.sin(a) * 70),
             vx: Math.cos(a) * speed,
             vy: Math.sin(a) * speed,
             damage: boss.enraged ? 32 : 25,
             color: boss.enraged ? '#f43f5e' : '#a855f7',
-            life: 90
+            life: 85
           });
         }
       }
@@ -1046,7 +1162,6 @@ setInterval(() => {
       }
     }
 
-    // Controllo Portale di Estrazione (Solo Giocatori Umani)
     if (!p.isBot && extractionPortal.active) {
       const distPortal = Math.hypot(p.x - extractionPortal.x, p.y - extractionPortal.y);
       if (distPortal < extractionPortal.radius) {
@@ -1152,7 +1267,7 @@ setInterval(() => {
           if (other.isRepairing) interruptRepair(other);
           p.ramCooldownUntil = now + 700;
           emitDamageNumber(other.x, other.y, ramDmg, '#fb923c');
-          io.emit('hitEffect', { x: other.x, y: other.y });
+          io.emit('hitEffect', { x: Math.round(other.x), y: Math.round(other.y) });
         }
       }
     }
@@ -1169,8 +1284,8 @@ setInterval(() => {
       souls.forEach(s => {
         const d = Math.hypot(p.x - s.x, p.y - s.y);
         if (d < 220 && d > 10) {
-          s.x += ((p.x - s.x) / d) * 5.2;
-          s.y += ((p.y - s.y) / d) * 5.2;
+          s.x = Math.round(s.x + ((p.x - s.x) / d) * 5.2);
+          s.y = Math.round(s.y + ((p.y - s.y) / d) * 5.2);
         }
       });
     }
@@ -1208,7 +1323,7 @@ setInterval(() => {
       const c = consumables[i];
       if (!p.consumable && Math.hypot(p.x - c.x, p.y - c.y) < 44) {
         p.consumable = { id: c.id, name: c.name, icon: c.icon, color: c.color, desc: c.desc };
-        io.emit('dmgNum', { x: p.x, y: p.y - 32, text: `${c.icon} ${c.name} [Q]`, color: c.color });
+        io.emit('dmgNum', { x: Math.round(p.x), y: Math.round(p.y - 32), text: `${c.icon} ${c.name} [Q]`, color: c.color });
         consumables.splice(i, 1);
         if (consumables.length < MAX_CONSUMABLES) spawnConsumable();
       }
@@ -1223,8 +1338,15 @@ setInterval(() => {
       }
     }
 
+    // Arrotonda le coordinate per alleggerire il payload JSON di rete
+    p.x = Math.round(p.x * 10) / 10;
+    p.y = Math.round(p.y * 10) / 10;
+    p.angle = Number(p.angle.toFixed(3));
+    p.hp = Math.round(p.hp);
+
+    // Morte Nave: I bot NON rinascono più istantaneamente, ma entrano nella coda dell'AI Director (8s di pausa)
     if (p.hp <= 0) {
-      for (let k = 0; k < 6; k++) {
+      for (let k = 0; k < 5; k++) {
         spawnSoul(p.x + (Math.random() - 0.5) * 100, p.y + (Math.random() - 0.5) * 100, 40, true);
       }
       if (Math.random() < 0.45) {
@@ -1232,7 +1354,8 @@ setInterval(() => {
       }
 
       if (p.isBot) {
-        players[id] = createShip(id, p.name, true);
+        delete players[id];
+        botRespawnCooldownUntil = now + 8000;
       } else {
         const earnedDoubloons = (p.kills * 12 + Math.max(0, (p.level - 1) * 6)) * rewardMult;
         io.to(id).emit('died', {
@@ -1270,8 +1393,8 @@ setInterval(() => {
       }
     }
 
-    b.x += b.vx;
-    b.y += b.vy;
+    b.x = Math.round((b.x + b.vx) * 10) / 10;
+    b.y = Math.round((b.y + b.vy) * 10) / 10;
     b.life--;
 
     if (b.life <= 0) {
@@ -1282,7 +1405,7 @@ setInterval(() => {
     let hitRock = false;
     for (let r of rocks) {
       if (Math.hypot(b.x - r.x, b.y - r.y) < r.radius) {
-        io.emit('hitEffect', { x: b.x, y: b.y });
+        io.emit('hitEffect', { x: Math.round(b.x), y: Math.round(b.y) });
         hitRock = true;
         break;
       }
@@ -1292,11 +1415,10 @@ setInterval(() => {
       continue;
     }
 
-    // Impatto Galeone Imperiale
     if (!b.isBossBullet && treasureGalleon.active && Math.hypot(b.x - treasureGalleon.x, b.y - treasureGalleon.y) < 52) {
       treasureGalleon.hp -= b.damage;
       emitDamageNumber(b.x, b.y, b.damage, '#fde047');
-      io.emit('hitEffect', { x: b.x, y: b.y });
+      io.emit('hitEffect', { x: Math.round(b.x), y: Math.round(b.y) });
 
       if (treasureGalleon.hp <= 0) {
         treasureGalleon.active = false;
@@ -1328,11 +1450,10 @@ setInterval(() => {
       continue;
     }
 
-    // Impatto Boss Leviatano
     if (!b.isBossBullet && boss.alive && Math.hypot(b.x - boss.x, b.y - boss.y) < boss.radius) {
       boss.hp -= b.damage;
       emitDamageNumber(b.x, b.y, b.damage, '#fbbf24');
-      io.emit('hitEffect', { x: b.x, y: b.y });
+      io.emit('hitEffect', { x: Math.round(b.x), y: Math.round(b.y) });
 
       if (b.lifestealRatio > 0 && players[b.ownerId]) {
         const healer = players[b.ownerId];
@@ -1364,8 +1485,8 @@ setInterval(() => {
         spawnRelicDrop(boss.x - 65, boss.y + 40, false);
         spawnRelicDrop(boss.x + 65, boss.y - 40, false);
 
-        for (let k = 0; k < 18; k++) {
-          const ang = (Math.PI * 2 * k) / 18;
+        for (let k = 0; k < 16; k++) {
+          const ang = (Math.PI * 2 * k) / 16;
           const dist = 45 + Math.random() * 95;
           spawnSoul(boss.x + Math.cos(ang) * dist, boss.y + Math.sin(ang) * dist, 55, true);
         }
@@ -1374,7 +1495,6 @@ setInterval(() => {
       continue;
     }
 
-    // Impatto Navi
     for (let id in players) {
       if (id === b.ownerId) continue;
       const target = players[id];
@@ -1385,12 +1505,12 @@ setInterval(() => {
         const dmgReduction = Math.min(0.65, target.armorBonus);
         const finalDmg = b.damage * (1 - dmgReduction);
         target.hp -= finalDmg;
-        target.extractProgress = 0; // Subire danni azzera l'estrazione nel portale!
+        target.extractProgress = 0;
 
         if (target.isRepairing) interruptRepair(target, 'Colpito! Riparazione Interrotta!');
 
         emitDamageNumber(target.x, target.y - 15, finalDmg, '#f87171');
-        io.emit('hitEffect', { x: b.x, y: b.y });
+        io.emit('hitEffect', { x: Math.round(b.x), y: Math.round(b.y) });
 
         if (b.lifestealRatio > 0 && players[b.ownerId]) {
           const healer = players[b.ownerId];
@@ -1404,7 +1524,6 @@ setInterval(() => {
           killer.kills++;
           killer.xp += 80;
 
-          // Se il meteo è Nebbia di Sangue, ogni kill cura il 30% degli HP!
           if (lobbyState.weather === 'bloodfog') {
             const bloodHeal = Math.round(killer.maxHp * 0.3);
             killer.hp = Math.min(killer.maxHp, killer.hp + bloodHeal);
@@ -1451,5 +1570,5 @@ setInterval(() => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  console.log(`🏴‍☠️ Abyssal Sails RPG v0.8 (Lobby Cycle, Extraction & Weather) attivo su http://localhost:${PORT}`);
+  console.log(`🏴‍☠️ Abyssal Sails RPG v0.9 (AI Director & 60FPS Engine) attivo su http://localhost:${PORT}`);
 });

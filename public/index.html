@@ -17,7 +17,6 @@
       transition: background 0.8s;
     }
 
-    /* Barra Timer Ciclo Lobby & Meteo (In alto al centro) */
     #match-top-bar {
       position: fixed; top: 14px; left: 50%; transform: translateX(-50%);
       display: flex; align-items: center; gap: 14px;
@@ -28,7 +27,6 @@
     #match-timer { font-family: 'Cinzel', serif; font-weight: 800; font-size: 1.05rem; color: #5eead4; letter-spacing: 1px; }
     #weather-badge { font-size: 0.78rem; color: #cbd5e1; border-left: 1px solid #334155; padding-left: 12px; }
 
-    /* Modal Podio Fine Round (10s prima del Reset Lobby) */
     #podium-modal {
       position: fixed; inset: 0; background: rgba(4, 7, 12, 0.88);
       display: none; flex-direction: column; align-items: center; justify-content: center;
@@ -68,9 +66,6 @@
     #quest-toast h4 { font-family: 'Cinzel', serif; color: #fbbf24; font-size: 0.9rem; }
     #quest-toast p { font-size: 0.78rem; color: #e2e8f0; margin-top: 2px; }
 
-    /* =====================================================
-       HOME PAGE DASHBOARD ("IL PORTO MALEDETTO" v0.8)
-       ===================================================== */
     #overlay {
       position: fixed; inset: 0;
       background: radial-gradient(circle at center, rgba(10, 20, 28, 0.84) 0%, rgba(3, 5, 8, 0.97) 100%);
@@ -283,13 +278,11 @@
 
   <div id="vignette"></div>
 
-  <!-- Top Bar Ciclo Lobby & Meteo -->
   <div id="match-top-bar">
     <span id="match-timer">⏳ 06:00</span>
     <span id="weather-badge">🌊 Mare Calmo</span>
   </div>
 
-  <!-- Modal Podio di Fine Spedizione (10s prima del Reset Lobby) -->
   <div id="podium-modal">
     <div class="podium-box">
       <h2>👑 FINE DELLA SPEDIZIONE!</h2>
@@ -311,16 +304,14 @@
     <p id="toast-desc">Hai riscosso Dobloni Abissali</p>
   </div>
 
-  <!-- =====================================================
-       HOME PAGE - DASHBOARD ("IL PORTO MALEDETTO" v0.8)
-       ===================================================== -->
+  <!-- HOME PAGE - DASHBOARD ("IL PORTO MALEDETTO" v0.9) -->
   <div id="overlay">
     <div class="dashboard-wrap">
 
       <div class="dash-header">
         <div class="brand-title">
           <h1>ABYSSAL SAILS</h1>
-          <span>IL PORTO MALEDETTO • LOBBY CYCLE & EXTRACTION UPDATE v0.8</span>
+          <span>IL PORTO MALEDETTO • AI DIRECTOR & 60FPS SMOOTH ENGINE v0.9</span>
         </div>
         <div class="captain-badges">
           <button class="sound-btn" id="soundToggleBtn" onclick="toggleSound()">🔊 Audio: ON</button>
@@ -469,6 +460,8 @@
     const ctx = canvas.getContext('2d');
 
     const SPRITE_ANGLE_OFFSET = 0;
+    const MAX_PARTICLES = 150;
+    const MAX_WAKES = 85;
 
     // =========================================================
     // SINTETIZZATORE AUDIO WEBAUDIO
@@ -751,7 +744,7 @@
     renderDashboardUI();
 
     // =========================================================
-    // ENGINE DI GIOCO & SOCKET.IO
+    // ENGINE DI GIOCO OTTIMIZZATO (LERP + VIEWPORT CULLING)
     // =========================================================
     let myId = null;
     let mapSize = 4000;
@@ -773,12 +766,39 @@
       whirlpools: [],
       serverTime: Date.now()
     };
+
+    // Stato interpolato lato client per movimento burroso a 60/144 FPS
+    let renderPlayers = {};
+    let lastHudUpdate = 0;
     let particles = [];
     let wakes = [];
     let dmgNumbers = [];
-    let shipVisuals = {};
     let myLastShotClient = 0;
     let camera = { x: 2000, y: 2000, shake: 0 };
+
+    function addParticle(pt) {
+      if (particles.length >= MAX_PARTICLES) particles.shift();
+      particles.push(pt);
+    }
+
+    function addWake(wk) {
+      if (wakes.length >= MAX_WAKES) wakes.shift();
+      wakes.push(wk);
+    }
+
+    // Viewport Frustum Culling: controlla se un oggetto è visibile nello schermo attuale
+    function isInView(x, y, margin = 140) {
+      return (
+        Math.abs(x - camera.x) <= canvas.width * 0.5 + margin &&
+        Math.abs(y - camera.y) <= canvas.height * 0.5 + margin
+      );
+    }
+
+    // Interpolazione angolare più breve (-PI .. +PI)
+    function lerpAngle(current, target, factor) {
+      const diff = Math.atan2(Math.sin(target - current), Math.cos(target - current));
+      return current + diff * factor;
+    }
 
     const assets = { playerHull: null, botHull: null, waterPattern: null };
 
@@ -892,13 +912,22 @@
 
     window.addEventListener('contextmenu', e => e.preventDefault());
 
+    // Invia pacchetti input solo quando lo stato dei tasti cambia davvero
     const inputs = { up: false, down: false, left: false, right: false };
+    function updateKeyInputs(key, isDown) {
+      let changed = false;
+      const k = key.toLowerCase();
+      if ((k === 'w' || key === 'ArrowUp') && inputs.up !== isDown) { inputs.up = isDown; changed = true; }
+      if ((k === 's' || key === 'ArrowDown') && inputs.down !== isDown) { inputs.down = isDown; changed = true; }
+      if ((k === 'a' || key === 'ArrowLeft') && inputs.left !== isDown) { inputs.left = isDown; changed = true; }
+      if ((k === 'd' || key === 'ArrowRight') && inputs.right !== isDown) { inputs.right = isDown; changed = true; }
+      if (changed) socket.emit('inputs', inputs);
+    }
+
     window.addEventListener('keydown', (e) => {
+      updateKeyInputs(e.key, true);
+      if (e.repeat) return;
       const k = e.key.toLowerCase();
-      if (k === 'w' || e.key === 'ArrowUp') inputs.up = true;
-      if (k === 's' || e.key === 'ArrowDown') inputs.down = true;
-      if (k === 'a' || e.key === 'ArrowLeft') inputs.left = true;
-      if (k === 'd' || e.key === 'ArrowRight') inputs.right = true;
       if (e.code === 'Space') socket.emit('shoot');
       if (k === 'e' || k === 'shift') socket.emit('useAbility');
       if (k === 'q') socket.emit('useConsumable');
@@ -912,16 +941,10 @@
       if (k === '2') upgrade('cannons');
       if (k === '3') upgrade('sails');
       if (k === '4') upgrade('reload');
-      socket.emit('inputs', inputs);
     });
 
     window.addEventListener('keyup', (e) => {
-      const k = e.key.toLowerCase();
-      if (k === 'w' || e.key === 'ArrowUp') inputs.up = false;
-      if (k === 's' || e.key === 'ArrowDown') inputs.down = false;
-      if (k === 'a' || e.key === 'ArrowLeft') inputs.left = false;
-      if (k === 'd' || e.key === 'ArrowRight') inputs.right = false;
-      socket.emit('inputs', inputs);
+      updateKeyInputs(e.key, false);
     });
 
     window.addEventListener('mousedown', (e) => {
@@ -942,7 +965,6 @@
       rocks = data.rocks || [];
     });
 
-    // Evento di Fine Ciclo Lobby -> Mostra il Podio per 10 secondi
     socket.on('lobbyEnd', ({ podium }) => {
       playHornSound();
       const modal = document.getElementById('podium-modal');
@@ -957,15 +979,20 @@
       modal.style.display = 'flex';
     });
 
-    // Evento di Reset Completo Mappa
     socket.on('lobbyReset', (data) => {
       rocks = data.rocks || [];
+      renderPlayers = {};
       document.getElementById('podium-modal').style.display = 'none';
     });
 
+    // Ricezione Stato + Throttling Aggiornamento DOM HUD (ogni 160ms invece di 33ms)
     socket.on('state', (state) => {
       gameState = state;
-      updateHUD();
+      const now = performance.now();
+      if (now - lastHudUpdate > 160) {
+        lastHudUpdate = now;
+        updateHUD();
+      }
     });
 
     socket.on('questEvent', ({ type, amount, doubloons }) => {
@@ -1013,6 +1040,7 @@
     });
 
     socket.on('dmgNum', ({ x, y, text, color }) => {
+      if (!isInView(x, y, 200)) return;
       dmgNumbers.push({
         x: x + (Math.random() - 0.5) * 20,
         y,
@@ -1024,72 +1052,69 @@
     });
 
     socket.on('abilityFx', ({ x, y, type }) => {
+      if (!isInView(x, y, 250)) return;
       const color = type === 'juggernaut' ? '#fb923c' : (type === 'phantom' ? '#38bdf8' : '#e879f9');
-      for (let i = 0; i < 28; i++) {
-        const a = (Math.PI * 2 * i) / 28;
-        particles.push({
+      for (let i = 0; i < 22; i++) {
+        const a = (Math.PI * 2 * i) / 22;
+        addParticle({
           x, y,
           vx: Math.cos(a) * (Math.random() * 6 + 3),
           vy: Math.sin(a) * (Math.random() * 6 + 3),
           size: Math.random() * 6 + 4,
           alpha: 1,
-          decay: 0.025,
+          decay: 0.028,
           color
         });
       }
     });
 
     socket.on('cannonFired', ({ x, y, id }) => {
-      const me = gameState.players[myId];
-      if (me && Math.hypot(me.x - x, me.y - y) < 700) {
-        playCannonSound();
-      }
       if (id === myId) {
-        camera.shake = 11;
+        camera.shake = 10;
         myLastShotClient = Date.now();
       }
-      if (shipVisuals[id]) shipVisuals[id].recoil = 1.0;
+      if (renderPlayers[id]) renderPlayers[id].recoil = 1.0;
+
+      if (!isInView(x, y, 220)) return;
+      playCannonSound();
 
       const shooter = gameState.players[id];
       const baseAngle = shooter ? shooter.angle : 0;
 
       [-Math.PI / 2, Math.PI / 2].forEach(side => {
         const flashAngle = baseAngle + side;
-        for (let i = 0; i < 10; i++) {
+        for (let i = 0; i < 8; i++) {
           const speed = Math.random() * 5 + 2;
-          particles.push({
+          addParticle({
             x: x + Math.cos(flashAngle) * 20,
             y: y + Math.sin(flashAngle) * 20,
             vx: Math.cos(flashAngle + (Math.random() - 0.5) * 0.6) * speed,
             vy: Math.sin(flashAngle + (Math.random() - 0.5) * 0.6) * speed,
-            size: Math.random() * 7 + 4,
-            alpha: 0.95,
-            decay: 0.03,
-            color: i < 4 ? '#5eead4' : '#334155'
+            size: Math.random() * 6 + 4,
+            alpha: 0.92,
+            decay: 0.035,
+            color: i < 3 ? '#5eead4' : '#334155'
           });
         }
       });
     });
 
     socket.on('hitEffect', ({ x, y }) => {
-      const me = gameState.players[myId];
-      if (me && Math.hypot(me.x - x, me.y - y) < 650) {
-        playHitSound();
-      }
-      for (let i = 0; i < 18; i++) {
-        particles.push({
+      if (!isInView(x, y, 220)) return;
+      playHitSound();
+      for (let i = 0; i < 14; i++) {
+        addParticle({
           x, y,
-          vx: (Math.random() - 0.5) * 10,
-          vy: (Math.random() - 0.5) * 10,
+          vx: (Math.random() - 0.5) * 9,
+          vy: (Math.random() - 0.5) * 9,
           size: Math.random() * 5 + 2,
           alpha: 1,
-          decay: 0.035,
+          decay: 0.04,
           color: Math.random() > 0.35 ? '#f97316' : '#7f1d1d'
         });
       }
     });
 
-    // Estrazione Completata dal Portale Verde!
     socket.on('extracted', ({ level, kills, earnedDoubloons }) => {
       profile.doubloons += (earnedDoubloons || 50);
       saveProfile();
@@ -1119,7 +1144,6 @@
     });
 
     function updateHUD() {
-      // Aggiorna Timer Lobby & Meteo
       if (gameState.lobbyState) {
         const ls = gameState.lobbyState;
         const remSec = Math.max(0, Math.ceil((ls.matchEndTime - gameState.serverTime) / 1000));
@@ -1143,7 +1167,6 @@
         else if (ls.weather === 'bloodfog') wBadge.innerText = '🌫️ Nebbia di Sangue (+30% Cura Kill)';
         else wBadge.innerText = '🌊 Mare Calmo';
 
-        // Vignettatura più stretta durante Nebbia di Sangue o Eclissi
         const vig = document.getElementById('vignette');
         if (ls.weather === 'bloodfog' || ls.phase === 'eclipse') {
           vig.style.background = 'radial-gradient(circle at center, transparent 36%, rgba(45, 5, 10, 0.94) 100%)';
@@ -1244,14 +1267,14 @@
       document.getElementById('lb-list').innerHTML = lbHtml;
     }
 
-    function drawBroadsideAim(p) {
+    function drawBroadsideAim(p, rx, ry, rAngle) {
       const reloadProgress = Math.min(1, (Date.now() - myLastShotClient) / p.reloadTime);
       const range = 280;
       const spread = p.shipClass === 'necromancer' ? 0.32 : 0.24;
 
       ctx.save();
-      ctx.translate(p.x, p.y);
-      ctx.rotate(p.angle);
+      ctx.translate(rx, ry);
+      ctx.rotate(rAngle);
 
       [-Math.PI / 2, Math.PI / 2].forEach(sideAngle => {
         ctx.beginPath();
@@ -1279,17 +1302,14 @@
       ctx.restore();
     }
 
-    // Disegna il Portale di Estrazione ("Fuga dall'Abisso")
     function drawExtractionPortal() {
       const ep = gameState.extractionPortal;
-      if (!ep || !ep.active) return;
+      if (!ep || !ep.active || !isInView(ep.x, ep.y, 200)) return;
 
       const t = Date.now() * 0.004;
       ctx.save();
       ctx.translate(ep.x, ep.y);
 
-      ctx.shadowBlur = 25;
-      ctx.shadowColor = '#22c55e';
       ctx.strokeStyle = '#4ade80';
       ctx.fillStyle = 'rgba(34, 197, 94, 0.12)';
       ctx.lineWidth = 4;
@@ -1297,7 +1317,6 @@
       ctx.arc(0, 0, ep.radius + Math.sin(t * 2) * 6, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
-      ctx.shadowBlur = 0;
 
       ctx.font = '800 13px Cinzel';
       ctx.textAlign = 'center';
@@ -1306,10 +1325,9 @@
       ctx.restore();
     }
 
-    // Disegna il Mercante Nero ("Il Traghettatore d'Ossa")
     function drawBlackMerchant() {
       const bm = gameState.blackMerchant;
-      if (!bm) return;
+      if (!bm || !isInView(bm.x, bm.y, 200)) return;
 
       ctx.save();
       ctx.translate(bm.x, bm.y);
@@ -1322,7 +1340,6 @@
       ctx.fill();
       ctx.stroke();
 
-      // Chiatta rituale del Mercante
       ctx.fillStyle = '#1e1b4b';
       ctx.strokeStyle = '#c084fc';
       ctx.lineWidth = 3;
@@ -1344,6 +1361,7 @@
 
     function drawWhirlpools() {
       (gameState.whirlpools || []).forEach(wp => {
+        if (!isInView(wp.x, wp.y, 220)) return;
         ctx.save();
         ctx.translate(wp.x, wp.y);
         ctx.rotate(wp.angle);
@@ -1366,7 +1384,7 @@
 
     function drawTreasureIsland() {
       const ti = gameState.treasureIsland;
-      if (!ti || !ti.active) return;
+      if (!ti || !ti.active || !isInView(ti.x, ti.y, 250)) return;
 
       ctx.save();
       ctx.translate(ti.x, ti.y);
@@ -1412,14 +1430,12 @@
 
     function drawTreasureGalleon() {
       const tg = gameState.treasureGalleon;
-      if (!tg || !tg.active) return;
+      if (!tg || !tg.active || !isInView(tg.x, tg.y, 160)) return;
 
       ctx.save();
       ctx.translate(tg.x, tg.y);
       ctx.rotate(tg.angle);
 
-      ctx.shadowBlur = 22;
-      ctx.shadowColor = '#facc15';
       ctx.fillStyle = '#422006';
       ctx.strokeStyle = '#fde047';
       ctx.lineWidth = 3.5;
@@ -1432,7 +1448,6 @@
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
-      ctx.shadowBlur = 0;
 
       ctx.restore();
 
@@ -1451,7 +1466,8 @@
     }
 
     function drawRocks() {
-      rocks.forEach(r => {
+      for (let r of rocks) {
+        if (!isInView(r.x, r.y, r.radius + 40)) continue;
         ctx.save();
         ctx.translate(r.x, r.y);
         ctx.fillStyle = '#0f172a';
@@ -1478,18 +1494,17 @@
         ctx.arc(0, 0, r.radius * 0.35, 0, Math.PI * 2);
         ctx.stroke();
         ctx.restore();
-      });
+      }
     }
 
     function drawRelicsAndConsumables() {
       const t = Date.now() * 0.005;
 
       (gameState.relics || []).forEach(rel => {
+        if (!isInView(rel.x, rel.y, 60)) return;
         ctx.save();
         ctx.translate(rel.x, rel.y);
 
-        ctx.shadowBlur = 20;
-        ctx.shadowColor = rel.color;
         ctx.strokeStyle = rel.color;
         ctx.lineWidth = 2.5;
         ctx.beginPath();
@@ -1500,7 +1515,6 @@
         ctx.beginPath();
         ctx.arc(0, 0, 14, 0, Math.PI * 2);
         ctx.fill();
-        ctx.shadowBlur = 0;
 
         ctx.font = '16px Inter';
         ctx.textAlign = 'center';
@@ -1514,6 +1528,7 @@
       });
 
       (gameState.consumables || []).forEach(c => {
+        if (!isInView(c.x, c.y, 50)) return;
         ctx.save();
         ctx.translate(c.x, c.y);
         ctx.fillStyle = '#1c1917';
@@ -1530,6 +1545,7 @@
       });
 
       (gameState.seaMines || []).forEach(m => {
+        if (!isInView(m.x, m.y, 50)) return;
         ctx.save();
         ctx.translate(m.x, m.y);
         ctx.fillStyle = '#18181b';
@@ -1550,7 +1566,7 @@
 
     function drawBoss() {
       const b = gameState.boss;
-      if (!b || !b.alive) return;
+      if (!b || !b.alive || !isInView(b.x, b.y, 220)) return;
 
       ctx.save();
       ctx.translate(b.x, b.y);
@@ -1586,13 +1602,10 @@
       ctx.fill();
       ctx.stroke();
 
-      ctx.shadowBlur = 24;
-      ctx.shadowColor = '#f43f5e';
       ctx.fillStyle = '#fb7185';
       ctx.beginPath();
       ctx.arc(0, 0, 17, 0, Math.PI * 2);
       ctx.fill();
-      ctx.shadowBlur = 0;
 
       ctx.font = '800 14px Cinzel';
       ctx.textAlign = 'center';
@@ -1615,19 +1628,54 @@
       return '#2dd4bf';
     }
 
+    // Aggiorna l'interpolazione lineare (LERP) di tutti i vascelli prima del disegno
+    function updateInterpolatedShips() {
+      const activeIds = new Set(Object.keys(gameState.players));
+      for (let id in renderPlayers) {
+        if (!activeIds.has(id)) delete renderPlayers[id];
+      }
+
+      for (let id in gameState.players) {
+        const srv = gameState.players[id];
+        if (!renderPlayers[id]) {
+          renderPlayers[id] = {
+            x: srv.x,
+            y: srv.y,
+            angle: srv.angle,
+            sailBillow: 0,
+            recoil: 0
+          };
+        } else {
+          const rp = renderPlayers[id];
+          // Se c'è stato un teletrasporto/respawn (>400px), salta subito
+          if (Math.hypot(srv.x - rp.x, srv.y - rp.y) > 400) {
+            rp.x = srv.x;
+            rp.y = srv.y;
+            rp.angle = srv.angle;
+          } else {
+            // Interpolazione fluida a 60/144 FPS
+            rp.x += (srv.x - rp.x) * 0.28;
+            rp.y += (srv.y - rp.y) * 0.28;
+            rp.angle = lerpAngle(rp.angle, srv.angle, 0.28);
+          }
+        }
+      }
+    }
+
     function drawShip(p) {
-      if (!shipVisuals[p.id]) shipVisuals[p.id] = { sailBillow: 0, recoil: 0 };
-      const vis = shipVisuals[p.id];
+      const rp = renderPlayers[p.id] || { x: p.x, y: p.y, angle: p.angle, sailBillow: 0, recoil: 0 };
+      if (p.id !== myId && !isInView(rp.x, rp.y, 160)) return;
+
       const targetBillow = Math.min(1, Math.abs(p.speed) / p.maxSpeed);
-      vis.sailBillow += (targetBillow - vis.sailBillow) * 0.1;
-      vis.recoil *= 0.85;
+      rp.sailBillow += (targetBillow - rp.sailBillow) * 0.1;
+      rp.recoil *= 0.85;
 
       const isBuffActive = gameState.serverTime < p.activeBuffUntil;
       const skinColor = getSkinAuraColor(p.skin);
 
       if (p.shipClass === 'necromancer' && isBuffActive) {
         ctx.save();
-        ctx.translate(p.x, p.y);
+        ctx.translate(rp.x, rp.y);
         ctx.strokeStyle = 'rgba(232, 121, 249, 0.55)';
         ctx.fillStyle = 'rgba(168, 85, 247, 0.08)';
         ctx.lineWidth = 3;
@@ -1638,60 +1686,61 @@
         ctx.restore();
       }
 
-      if (p.isRepairing && Math.random() < 0.4) {
-        particles.push({
-          x: p.x + (Math.random() - 0.5) * 40,
-          y: p.y + (Math.random() - 0.5) * 40,
+      if (p.isRepairing && Math.random() < 0.35) {
+        addParticle({
+          x: rp.x + (Math.random() - 0.5) * 40,
+          y: rp.y + (Math.random() - 0.5) * 40,
           vx: 0,
           vy: -1.2,
           size: 4,
           alpha: 0.9,
-          decay: 0.03,
+          decay: 0.035,
           color: '#4ade80'
         });
       }
 
-      if (Math.abs(p.speed) > 0.6 && Math.random() < 0.5) {
-        wakes.push({
-          x: p.x - Math.cos(p.angle) * 34,
-          y: p.y - Math.sin(p.angle) * 34,
+      if (Math.abs(p.speed) > 0.6 && Math.random() < 0.35) {
+        addWake({
+          x: rp.x - Math.cos(rp.angle) * 34,
+          y: rp.y - Math.sin(rp.angle) * 34,
           radius: 6,
-          alpha: 0.4,
+          alpha: 0.38,
           color: skinColor
         });
       }
 
       const hpRatio = p.hp / p.maxHp;
-      if (hpRatio < 0.5 && Math.random() < 0.35) {
-        particles.push({
-          x: p.x + (Math.random() - 0.5) * 26,
-          y: p.y + (Math.random() - 0.5) * 26,
+      if (hpRatio < 0.5 && Math.random() < 0.28) {
+        addParticle({
+          x: rp.x + (Math.random() - 0.5) * 26,
+          y: rp.y + (Math.random() - 0.5) * 26,
           vx: (Math.random() - 0.5) * 0.8,
           vy: (Math.random() - 0.5) * 0.8 - 0.5,
           size: Math.random() * 5 + 3,
           alpha: 0.75,
-          decay: 0.025,
+          decay: 0.03,
           color: hpRatio < 0.25 && Math.random() > 0.4 ? '#f97316' : '#1e293b'
         });
       }
 
-      if (p.id === myId) drawBroadsideAim(p);
+      if (p.id === myId) drawBroadsideAim(p, rp.x, rp.y, rp.angle);
 
       ctx.save();
-      ctx.translate(p.x, p.y);
-      ctx.rotate(p.angle);
+      ctx.translate(rp.x, rp.y);
+      ctx.rotate(rp.angle);
 
       if (p.shipClass === 'phantom' && isBuffActive) {
         ctx.globalAlpha = 0.38;
       }
 
-      ctx.shadowBlur = isBuffActive ? 26 : 12;
-      ctx.shadowColor = p.shipClass
-        ? (p.shipClass === 'juggernaut' ? '#fb923c' : (p.shipClass === 'phantom' ? '#38bdf8' : '#e879f9'))
-        : skinColor;
+      // Usa shadowBlur solo quando un buff speciale è attivo (risparmia GPU)
+      if (isBuffActive) {
+        ctx.shadowBlur = 22;
+        ctx.shadowColor = p.shipClass === 'juggernaut' ? '#fb923c' : (p.shipClass === 'phantom' ? '#38bdf8' : '#e879f9');
+      }
 
-      const scaleRecoil = 1 - vis.recoil * 0.06;
-      ctx.scale(scaleRecoil, 1 + vis.recoil * 0.08);
+      const scaleRecoil = 1 - rp.recoil * 0.06;
+      ctx.scale(scaleRecoil, 1 + rp.recoil * 0.08);
 
       const customCanvas = p.isBot ? assets.botHull : assets.playerHull;
 
@@ -1723,18 +1772,16 @@
       ctx.font = '600 12px Inter';
       ctx.textAlign = 'center';
 
-      // Fumetto Emote [T] sopra la nave
       if (p.emote) {
         ctx.font = '700 13px Inter';
         ctx.fillStyle = '#fef08a';
-        ctx.fillText(p.emote, p.x, p.y - 72);
+        ctx.fillText(p.emote, rp.x, rp.y - 72);
       }
 
-      // Barra Estrazione se dentro il Portale Verde
       if (p.extractProgress && p.extractProgress > 0) {
         ctx.font = '700 11px Inter';
         ctx.fillStyle = '#4ade80';
-        ctx.fillText(`🌀 ESTRAZIONE ${Math.floor(p.extractProgress)}%`, p.x, p.y - 68);
+        ctx.fillText(`🌀 ESTRAZIONE ${Math.floor(p.extractProgress)}%`, rp.x, rp.y - 68);
       }
 
       ctx.font = '600 12px Inter';
@@ -1742,26 +1789,30 @@
       const relicIcons = (p.inventory || []).map(r => `${r.icon}${r.level > 1 ? r.level : ''}`).join(' ');
       const wantedCrown = p.isMostWanted ? '👑 [TAGLIA] ' : '';
       ctx.fillStyle = p.isMostWanted ? '#facc15' : (p.id === myId ? skinColor : (p.isBot ? '#c084fc' : '#e2d9c8'));
-      ctx.fillText(`${wantedCrown}${p.name} [Lv.${p.level}${classTag}] ${relicIcons}`, p.x, p.y - 54);
+      ctx.fillText(`${wantedCrown}${p.name} [Lv.${p.level}${classTag}] ${relicIcons}`, rp.x, rp.y - 54);
 
       const barW = 58;
       ctx.fillStyle = 'rgba(0,0,0,0.75)';
-      ctx.fillRect(p.x - barW / 2, p.y - 45, barW, 6);
+      ctx.fillRect(rp.x - barW / 2, rp.y - 45, barW, 6);
       ctx.fillStyle = p.isRepairing ? '#4ade80' : (hpRatio > 0.4 ? '#14b8a6' : (hpRatio > 0.2 ? '#f59e0b' : '#ef4444'));
-      ctx.fillRect(p.x - barW / 2, p.y - 45, barW * Math.max(0, hpRatio), 6);
+      ctx.fillRect(rp.x - barW / 2, rp.y - 45, barW * Math.max(0, hpRatio), 6);
       ctx.restore();
     }
 
     function render() {
       requestAnimationFrame(render);
 
-      const me = gameState.players[myId];
-      if (me) {
-        camera.x += (me.x - camera.x) * 0.12;
-        camera.y += (me.y - camera.y) * 0.12;
+      updateInterpolatedShips();
+
+      const meRender = renderPlayers[myId];
+      if (meRender) {
+        camera.x += (meRender.x - camera.x) * 0.18;
+        camera.y += (meRender.y - camera.y) * 0.18;
       }
 
-      if (camera.shake > 0) camera.shake *= 0.85;
+      if (camera.shake > 0.2) camera.shake *= 0.85;
+      else camera.shake = 0;
+
       const shakeX = (Math.random() - 0.5) * camera.shake;
       const shakeY = (Math.random() - 0.5) * camera.shake;
 
@@ -1771,9 +1822,15 @@
       ctx.save();
       ctx.translate(canvas.width / 2 - camera.x + shakeX, canvas.height / 2 - camera.y + shakeY);
 
+      // Disegna la texture dell'acqua solo per il rettangolo visibile della telecamera (enorme boost FPS!)
       if (assets.waterPattern) {
         ctx.fillStyle = assets.waterPattern;
-        ctx.fillRect(-1000, -1000, mapSize + 2000, mapSize + 2000);
+        ctx.fillRect(
+          camera.x - canvas.width * 0.5 - 100,
+          camera.y - canvas.height * 0.5 - 100,
+          canvas.width + 200,
+          canvas.height + 200
+        );
       }
 
       drawWhirlpools();
@@ -1785,8 +1842,9 @@
       for (let i = wakes.length - 1; i >= 0; i--) {
         const w = wakes[i];
         w.radius += 0.35;
-        w.alpha -= 0.008;
+        w.alpha -= 0.009;
         if (w.alpha <= 0) { wakes.splice(i, 1); continue; }
+        if (!isInView(w.x, w.y, 40)) continue;
         ctx.strokeStyle = w.color;
         ctx.globalAlpha = w.alpha;
         ctx.lineWidth = 1.5;
@@ -1796,39 +1854,43 @@
         ctx.globalAlpha = 1;
       }
 
-      const pulse = Math.sin(Date.now() * 0.006) * 2.5;
-      gameState.souls.forEach(s => {
-        ctx.save();
-        ctx.shadowBlur = 16;
-        ctx.shadowColor = s.isBossDrop ? '#f59e0b' : '#2dd4bf';
+      // Anime Abissali con Viewport Culling e cerchio doppio leggero (niente shadowBlur costoso)
+      const pulse = Math.sin(Date.now() * 0.006) * 2.0;
+      for (let s of gameState.souls) {
+        if (!isInView(s.x, s.y, 30)) continue;
+        const r = (s.isBossDrop ? 8.5 : 5.2) + pulse * 0.35;
+        ctx.fillStyle = s.isBossDrop ? 'rgba(245, 158, 11, 0.25)' : 'rgba(45, 212, 191, 0.22)';
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, r * 1.8, 0, Math.PI * 2);
+        ctx.fill();
+
         ctx.fillStyle = s.isBossDrop ? '#fbbf24' : '#5eead4';
         ctx.beginPath();
-        ctx.arc(s.x, s.y, (s.isBossDrop ? 9 : 5.5) + pulse * 0.4, 0, Math.PI * 2);
+        ctx.arc(s.x, s.y, r, 0, Math.PI * 2);
         ctx.fill();
-        ctx.restore();
-      });
+      }
 
       drawRelicsAndConsumables();
       drawRocks();
       drawBoss();
       Object.values(gameState.players).forEach(drawShip);
 
-      gameState.bullets.forEach(b => {
+      // Palle di cannone con Viewport Culling
+      for (let b of gameState.bullets) {
+        if (!isInView(b.x, b.y, 30)) continue;
         ctx.fillStyle = b.color || '#ccfbf1';
-        ctx.shadowBlur = b.homing ? 18 : 12;
-        ctx.shadowColor = b.color || '#2dd4bf';
         ctx.beginPath();
         ctx.arc(b.x, b.y, b.isBossBullet ? 7.5 : (b.homing ? 6.5 : 4.5), 0, Math.PI * 2);
         ctx.fill();
-      });
-      ctx.shadowBlur = 0;
+      }
 
       for (let i = particles.length - 1; i >= 0; i--) {
         const pt = particles[i];
         pt.x += pt.vx;
         pt.y += pt.vy;
-        pt.alpha -= pt.decay || 0.025;
+        pt.alpha -= pt.decay || 0.03;
         if (pt.alpha <= 0) { particles.splice(i, 1); continue; }
+        if (!isInView(pt.x, pt.y, 30)) continue;
         ctx.fillStyle = pt.color;
         ctx.globalAlpha = pt.alpha;
         ctx.beginPath();
@@ -1842,7 +1904,7 @@
       for (let i = dmgNumbers.length - 1; i >= 0; i--) {
         const dn = dmgNumbers[i];
         dn.y += dn.vy;
-        dn.alpha -= 0.022;
+        dn.alpha -= 0.024;
         if (dn.alpha <= 0) { dmgNumbers.splice(i, 1); continue; }
         ctx.globalAlpha = dn.alpha;
         ctx.fillStyle = dn.color;
@@ -1887,7 +1949,6 @@
       ctx.arc((st.x / mapSize) * size, (st.y / mapSize) * size, (st.radius / mapSize) * size, 0, Math.PI * 2);
       ctx.stroke();
 
-      // Portale di Estrazione Verde sulla Minimappa
       if (gameState.extractionPortal && gameState.extractionPortal.active) {
         ctx.strokeStyle = '#4ade80';
         ctx.lineWidth = 2;
@@ -1902,7 +1963,6 @@
         ctx.stroke();
       }
 
-      // Mercante Nero Viola sulla Minimappa
       if (gameState.blackMerchant) {
         ctx.fillStyle = '#e879f9';
         ctx.fillRect(
