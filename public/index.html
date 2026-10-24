@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Abyssal Sails .io - Dark Fantasy Pirate Royale</title>
+  <title>Abyssal Sails .io - Dark Fantasy Pirate Royale v1.0</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Inter:wght@400;500;600;700&display=swap');
 
@@ -14,7 +14,7 @@
     #vignette {
       position: fixed; inset: 0; pointer-events: none; z-index: 5;
       background: radial-gradient(circle at center, transparent 55%, rgba(0, 0, 0, 0.88) 100%);
-      transition: background 0.8s;
+      transition: background 0.6s ease;
     }
 
     #match-top-bar {
@@ -190,8 +190,18 @@
     }
     .buy-upg-btn:disabled { opacity: 0.38; border-color: #475569; color: #94a3b8; cursor: not-allowed; }
 
-    /* HUD IN PARTITA */
+    /* =====================================================
+       HUD IN PARTITA + MINIMAPPA NITIDA SOPRA VIGNETTE
+       ===================================================== */
     #hud { position: fixed; inset: 0; pointer-events: none; z-index: 10; display: none; }
+    #minimapCanvas {
+      position: absolute; top: 16px; left: 16px;
+      width: 145px; height: 145px;
+      background: rgba(8, 13, 19, 0.92);
+      border: 1.5px solid #3b3026;
+      border-radius: 6px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.85);
+    }
     #leaderboard {
       position: absolute; top: 16px; right: 16px; width: 245px;
       background: rgba(10, 14, 19, 0.88); border: 1px solid #2c2520; padding: 12px; border-radius: 6px;
@@ -199,15 +209,6 @@
     #leaderboard h3 { font-family: 'Cinzel', serif; font-size: 0.9rem; color: #c8b69e; margin-bottom: 8px; border-bottom: 1px solid #2c2520; padding-bottom: 4px; }
     .lb-row { display: flex; justify-content: space-between; font-size: 0.81rem; margin: 4px 0; color: #94a3b8; }
     .lb-row.me { color: #2dd4bf; font-weight: 600; }
-    
-    #minimapCanvas {
-      position: absolute; top: 16px; left: 16px;
-      width: 145px; height: 145px;
-      background: rgba(8, 13, 19, 0.92);
-      border: 1.5px solid #3b3026;
-      border-radius: 6px;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.8);
-    }
 
     #relics-panel {
       position: absolute; top: 175px; left: 16px;
@@ -239,32 +240,33 @@
     }
 
     #class-modal {
-      position: absolute; top: 18%; left: 50%; transform: translateX(-50%);
+      position: absolute; top: 16%; left: 50%; transform: translateX(-50%);
       display: none; flex-direction: column; align-items: center; gap: 12px;
       background: rgba(11, 15, 22, 0.96); border: 1px solid #2dd4bf;
       box-shadow: 0 0 35px rgba(45, 212, 191, 0.3); padding: 18px 24px; border-radius: 8px;
       pointer-events: auto;
     }
     #class-modal h2 { font-family: 'Cinzel', serif; font-size: 1.15rem; color: #5eead4; letter-spacing: 1px; }
-    .class-cards { display: flex; gap: 12px; }
+    .class-cards { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
     .class-card {
-      width: 185px; background: #090d14; border: 1px solid #3b3026; border-radius: 6px;
+      width: 175px; background: #090d14; border: 1px solid #3b3026; border-radius: 6px;
       padding: 12px; cursor: pointer; transition: 0.2s; text-align: center;
     }
     .class-card:hover { border-color: #2dd4bf; transform: translateY(-4px); background: #111c24; }
-    .class-card h4 { font-family: 'Cinzel', serif; color: #f3ede2; font-size: 0.95rem; margin-bottom: 6px; }
-    .class-card p { font-size: 0.75rem; color: #94a3b8; line-height: 1.4; }
+    .class-card h4 { font-family: 'Cinzel', serif; color: #f3ede2; font-size: 0.92rem; margin-bottom: 6px; }
+    .class-card p { font-size: 0.73rem; color: #94a3b8; line-height: 1.4; }
 
     #rpg-bar {
       position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%);
       display: flex; flex-direction: column; align-items: center; gap: 9px; pointer-events: auto;
     }
-    #action-pills { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: center; }
+    #action-pills { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: center; }
     .pill-box {
-      display: flex; align-items: center; gap: 8px; cursor: pointer;
+      display: flex; align-items: center; gap: 6px; cursor: pointer;
       background: rgba(15, 23, 42, 0.92); border: 1px solid #475569;
-      padding: 6px 14px; border-radius: 20px; font-size: 0.79rem; color: #e2e8f0;
+      padding: 6px 13px; border-radius: 20px; font-size: 0.78rem; color: #e2e8f0;
     }
+    #lantern-box { border-color: #fde047; color: #fef08a; }
     #consumable-box { border-color: #f97316; color: #fed7aa; box-shadow: 0 0 12px rgba(249, 115, 22, 0.2); }
     #ability-box { display: none; border-color: #a855f7; color: #e9d5ff; box-shadow: 0 0 15px rgba(168, 85, 247, 0.3); }
     #repair-box { border-color: #22c55e; color: #bbf7d0; box-shadow: 0 0 12px rgba(34, 197, 94, 0.2); }
@@ -313,14 +315,14 @@
     <p id="toast-desc">Hai riscosso Dobloni Abissali</p>
   </div>
 
-  <!-- HOME PAGE - DASHBOARD ("IL PORTO MALEDETTO" v0.9) -->
+  <!-- HOME PAGE - DASHBOARD ("IL PORTO MALEDETTO" v1.0) -->
   <div id="overlay">
     <div class="dashboard-wrap">
 
       <div class="dash-header">
         <div class="brand-title">
           <h1>ABYSSAL SAILS</h1>
-          <span>IL PORTO MALEDETTO • AI DIRECTOR & 60FPS SMOOTH ENGINE v0.9</span>
+          <span>IL PORTO MALEDETTO • BUILD v1.0: L'OMBRA E LA TEMPESTA</span>
         </div>
         <div class="captain-badges">
           <button class="sound-btn" id="soundToggleBtn" onclick="toggleSound()">🔊 Audio: ON</button>
@@ -377,9 +379,9 @@
           <button id="playBtn">SALPA NELL'ABISSO</button>
 
           <div class="controls-mini">
-            <span>W/S/A/D</span> Manovra • <span>SPAZIO / CLICK SX</span> Bordate • <span>Q</span> Oggetto Tattico<br/>
-            <span>R</span> Ripara • <span>E / CLICK DX</span> Abilità • <span>F</span> Patto Mercante Nero • <span>T</span> Emote<br/>
-            <span>🌀 Portale Verde:</span> Resta dentro 5s per estrarre il bottino con +50 🪙 Bonus!
+            <span>W/S/A/D</span> Manovra • <span>SPAZIO / CLICK SX</span> Bordate • <span>L</span> Lanterna (Stealth +25% Imboscata)<br/>
+            <span>Q</span> Oggetto Tattico • <span>R</span> Ripara • <span>E / CLICK DX</span> Abilità • <span>F</span> Mercante • <span>T</span> Emote<br/>
+            <span>💡 Contromossa:</span> Puoi sparare ai Teschi del Negromante per distruggerli in volo!
           </div>
         </div>
 
@@ -397,8 +399,9 @@
 
   <!-- HUD IN PARTITA -->
   <div id="hud">
+    <!-- Minimappa nitida sopra la vignettatura (z-index: 10) -->
     <canvas id="minimapCanvas" width="145" height="145"></canvas>
-    
+
     <div id="leaderboard">
       <h3>TERRORE DEI MARI</h3>
       <div id="lb-list"></div>
@@ -411,20 +414,25 @@
       <div id="synergy-list"></div>
     </div>
 
+    <!-- 4 Classi Evolutive al Livello 4 -->
     <div id="class-modal">
       <h2>SCEGLI L'EVOLUZIONE DEL VASCELLO (LIVELLO 4)</h2>
       <div class="class-cards">
         <div class="class-card" onclick="selectClass('juggernaut')">
           <h4>🛡️ JUGGERNAUT</h4>
-          <p>+90 HP & Corazza.<br/><b>Abilità [E]:</b> Carica del Leviatano (Speronamento devastante).</p>
+          <p>+90 HP & Corazza.<br/><b>Abilità [E]:</b> Carica del Leviatano (Speronamento).</p>
         </div>
         <div class="class-card" onclick="selectClass('phantom')">
           <h4>👻 SPETTRALE</h4>
-          <p>Velocità e Manovra.<br/><b>Abilità [E]:</b> Velo Ombra (Intangibile ai colpi per 3.6s).</p>
+          <p>Velocità e Manovra.<br/><b>Abilità [E]:</b> Velo Ombra (Intangibile per 3.6s).</p>
         </div>
         <div class="class-card" onclick="selectClass('necromancer')">
           <h4>💀 NEGROMANTE</h4>
-          <p>Magnetismo Anime & 45% Rubavita.<br/><b>Abilità [E]:</b> Aura Drenante + 6 Teschi a Ricerca!</p>
+          <p>Magnetismo & 45% Rubavita.<br/><b>Abilità [E]:</b> Aura Drenante + 6 Teschi Homing.</p>
+        </div>
+        <div class="class-card" onclick="selectClass('stormcaller')">
+          <h4>⚡ TEMPESTARIO</h4>
+          <p>Colpi Elettrici Rallentanti.<br/><b>Abilità [E]:</b> Catena di Fulmini su 4 Bersagli!</p>
         </div>
       </div>
     </div>
@@ -438,6 +446,9 @@
       </div>
 
       <div id="action-pills">
+        <div id="lantern-box" class="pill-box" onclick="socket.emit('toggleLantern')">
+          <span id="lantern-text">🔦 [L] Lanterna: ON</span>
+        </div>
         <div id="consumable-box" class="pill-box" onclick="socket.emit('useConsumable')">
           <span id="consumable-text">📦 [Q] Nessun Oggetto</span>
         </div>
@@ -469,13 +480,15 @@
     const socket = io();
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
+    const mmCanvas = document.getElementById('minimapCanvas');
+    const mmCtx = mmCanvas.getContext('2d');
 
     const SPRITE_ANGLE_OFFSET = 0;
     const MAX_PARTICLES = 150;
     const MAX_WAKES = 85;
 
     // =========================================================
-    // SINTETIZZATORE AUDIO WEBAUDIO
+    // SINTETIZZATORE AUDIO WEBAUDIO (CON SUONO FULMINE)
     // =========================================================
     let soundEnabled = true;
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -518,6 +531,22 @@
       gain.connect(audioCtx.destination);
       osc.start(now);
       osc.stop(now + 0.13);
+    }
+
+    function playZapSound() {
+      if (!ensureAudio()) return;
+      const now = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(520, now);
+      osc.frequency.exponentialRampToValueAtTime(110, now + 0.22);
+      gain.gain.setValueAtTime(0.16, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.24);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 0.24);
     }
 
     function playHornSound() {
@@ -755,7 +784,7 @@
     renderDashboardUI();
 
     // =========================================================
-    // ENGINE DI GIOCO OTTIMIZZATO (LERP + VIEWPORT CULLING)
+    // ENGINE DI GIOCO OTTIMIZZATO (LERP + CULLING + STEALTH + FULMINI)
     // =========================================================
     let myId = null;
     let mapSize = 4000;
@@ -778,12 +807,12 @@
       serverTime: Date.now()
     };
 
-    // Stato interpolato lato client per movimento burroso a 60/144 FPS
     let renderPlayers = {};
     let lastHudUpdate = 0;
     let particles = [];
     let wakes = [];
     let dmgNumbers = [];
+    let lightningBolts = []; // Archi elettrici del Tempestario
     let myLastShotClient = 0;
     let camera = { x: 2000, y: 2000, shake: 0 };
 
@@ -797,7 +826,6 @@
       wakes.push(wk);
     }
 
-    // Viewport Frustum Culling: controlla se un oggetto è visibile nello schermo attuale
     function isInView(x, y, margin = 140) {
       return (
         Math.abs(x - camera.x) <= canvas.width * 0.5 + margin &&
@@ -805,7 +833,6 @@
       );
     }
 
-    // Interpolazione angolare più breve (-PI .. +PI)
     function lerpAngle(current, target, factor) {
       const diff = Math.atan2(Math.sin(target - current), Math.cos(target - current));
       return current + diff * factor;
@@ -923,7 +950,6 @@
 
     window.addEventListener('contextmenu', e => e.preventDefault());
 
-    // Invia pacchetti input solo quando lo stato dei tasti cambia davvero
     const inputs = { up: false, down: false, left: false, right: false };
     function updateKeyInputs(key, isDown) {
       let changed = false;
@@ -942,6 +968,7 @@
       if (e.code === 'Space') socket.emit('shoot');
       if (k === 'e' || k === 'shift') socket.emit('useAbility');
       if (k === 'q') socket.emit('useConsumable');
+      if (k === 'l') socket.emit('toggleLantern');
       if (k === 'f') socket.emit('useMerchant');
       if (k === 't') socket.emit('sendEmote');
       if (k === 'r') triggerRepair();
@@ -996,7 +1023,6 @@
       document.getElementById('podium-modal').style.display = 'none';
     });
 
-    // Ricezione Stato + Throttling Aggiornamento DOM HUD (ogni 160ms invece di 33ms)
     socket.on('state', (state) => {
       gameState = state;
       const now = performance.now();
@@ -1059,6 +1085,23 @@
         color,
         alpha: 1,
         vy: -1.5
+      });
+    });
+
+    // Effetto Catena di Fulmini del Tempestario
+    socket.on('lightningFx', ({ fromX, fromY, targets }) => {
+      if (isInView(fromX, fromY, 450)) {
+        playZapSound();
+        camera.shake = Math.max(camera.shake, 9);
+      }
+      (targets || []).forEach(t => {
+        lightningBolts.push({
+          x1: fromX,
+          y1: fromY,
+          x2: t.x,
+          y2: t.y,
+          alpha: 1.0
+        });
       });
     });
 
@@ -1154,7 +1197,17 @@
       document.getElementById('hud').style.display = 'none';
     });
 
+    function getMyEstimatedExtractionPayout() {
+      const me = gameState.players[myId];
+      if (!me) return 50;
+      const mult = (gameState.lobbyState && gameState.lobbyState.phase === 'eclipse') ? 2 : 1;
+      const stars = (me.inventory || []).reduce((acc, r) => acc + (r.level || 1), 0);
+      return (25 + me.level * 12 + me.kills * 18 + stars * 24) * mult;
+    }
+
     function updateHUD() {
+      const me = gameState.players[myId];
+
       if (gameState.lobbyState) {
         const ls = gameState.lobbyState;
         const remSec = Math.max(0, Math.ceil((ls.matchEndTime - gameState.serverTime) / 1000));
@@ -1178,15 +1231,17 @@
         else if (ls.weather === 'bloodfog') wBadge.innerText = '🌫️ Nebbia di Sangue (+30% Cura Kill)';
         else wBadge.innerText = '🌊 Mare Calmo';
 
+        // Vignettatura dinamica per Lanterna Spenta (Stealth) o Nebbia di Sangue
         const vig = document.getElementById('vignette');
-        if (ls.weather === 'bloodfog' || ls.phase === 'eclipse') {
+        if (me && !me.lanternOn) {
+          vig.style.background = 'radial-gradient(circle at center, transparent 22%, rgba(2, 5, 10, 0.96) 66%)';
+        } else if (ls.weather === 'bloodfog' || ls.phase === 'eclipse') {
           vig.style.background = 'radial-gradient(circle at center, transparent 36%, rgba(45, 5, 10, 0.94) 100%)';
         } else {
           vig.style.background = 'radial-gradient(circle at center, transparent 55%, rgba(0, 0, 0, 0.88) 100%)';
         }
       }
 
-      const me = gameState.players[myId];
       if (me) {
         const pct = Math.min(100, (me.xp / me.maxXp) * 100);
         document.getElementById('xp-fill').style.width = pct + '%';
@@ -1197,6 +1252,17 @@
         document.querySelectorAll('.upg-btn').forEach(btn => {
           btn.classList.toggle('available', me.skillPoints > 0);
         });
+
+        // Bottone Lanterna [L]
+        const lantBox = document.getElementById('lantern-box');
+        const lantTxt = document.getElementById('lantern-text');
+        if (me.lanternOn) {
+          lantBox.style.borderColor = '#fde047';
+          lantTxt.innerText = '🔦 [L] Lanterna: ON';
+        } else {
+          lantBox.style.borderColor = '#94a3b8';
+          lantTxt.innerText = '🌑 [L] Furtivo (+25% Danno)';
+        }
 
         const keyLabels = ['Z', 'X', 'C'];
         for (let i = 0; i < 3; i++) {
@@ -1271,7 +1337,7 @@
       const sorted = Object.values(gameState.players).sort((a, b) => b.level - a.level || b.kills - a.kills).slice(0, 6);
       const lbHtml = sorted.map((p, idx) =>
         `<div class="lb-row ${p.id === myId ? 'me' : ''}">
-          <span>${idx + 1}. ${p.isMostWanted ? '👑 ' : ''}${p.name}</span>
+          <span>${idx + 1}. ${p.isMostWanted ? '👑 ' : (p.isElite ? '👹 ' : '')}${p.name}</span>
           <span>Lv.${p.level} (${p.kills}☠️)</span>
         </div>`
       ).join('');
@@ -1318,6 +1384,7 @@
       if (!ep || !ep.active || !isInView(ep.x, ep.y, 200)) return;
 
       const t = Date.now() * 0.004;
+      const estPayout = getMyEstimatedExtractionPayout();
       ctx.save();
       ctx.translate(ep.x, ep.y);
 
@@ -1332,7 +1399,7 @@
       ctx.font = '800 13px Cinzel';
       ctx.textAlign = 'center';
       ctx.fillStyle = '#86efac';
-      ctx.fillText('🌀 PORTALE DI ESTRAZIONE (+50 🪙)', 0, -ep.radius - 16);
+      ctx.fillText(`🌀 PORTALE DI ESTRAZIONE (TUO BOTTINO: +${estPayout} 🪙)`, 0, -ep.radius - 16);
       ctx.restore();
     }
 
@@ -1639,7 +1706,6 @@
       return '#2dd4bf';
     }
 
-    // Aggiorna l'interpolazione lineare (LERP) di tutti i vascelli prima del disegno
     function updateInterpolatedShips() {
       const activeIds = new Set(Object.keys(gameState.players));
       for (let id in renderPlayers) {
@@ -1658,13 +1724,11 @@
           };
         } else {
           const rp = renderPlayers[id];
-          // Se c'è stato un teletrasporto/respawn (>400px), salta subito
           if (Math.hypot(srv.x - rp.x, srv.y - rp.y) > 400) {
             rp.x = srv.x;
             rp.y = srv.y;
             rp.angle = srv.angle;
           } else {
-            // Interpolazione fluida a 60/144 FPS
             rp.x += (srv.x - rp.x) * 0.28;
             rp.y += (srv.y - rp.y) * 0.28;
             rp.angle = lerpAngle(rp.angle, srv.angle, 0.28);
@@ -1676,6 +1740,11 @@
     function drawShip(p) {
       const rp = renderPlayers[p.id] || { x: p.x, y: p.y, angle: p.angle, sailBillow: 0, recoil: 0 };
       if (p.id !== myId && !isInView(rp.x, rp.y, 160)) return;
+
+      // Calcola visibilità furtiva se il nemico ha la Lanterna Spenta [L]
+      const meRender = renderPlayers[myId] || { x: camera.x, y: camera.y };
+      const distToMe = Math.hypot(rp.x - meRender.x, rp.y - meRender.y);
+      const isStealthedEnemy = p.id !== myId && !p.lanternOn && distToMe > 200;
 
       const targetBillow = Math.min(1, Math.abs(p.speed) / p.maxSpeed);
       rp.sailBillow += (targetBillow - rp.sailBillow) * 0.1;
@@ -1710,7 +1779,8 @@
         });
       }
 
-      if (Math.abs(p.speed) > 0.6 && Math.random() < 0.35) {
+      // Nessuna scia visibile se il vascello naviga a Lanterna Spenta!
+      if (p.lanternOn && Math.abs(p.speed) > 0.6 && Math.random() < 0.35) {
         addWake({
           x: rp.x - Math.cos(rp.angle) * 34,
           y: rp.y - Math.sin(rp.angle) * 34,
@@ -1740,18 +1810,20 @@
       ctx.translate(rp.x, rp.y);
       ctx.rotate(rp.angle);
 
-      if (p.shipClass === 'phantom' && isBuffActive) {
-        ctx.globalAlpha = 0.38;
+      if (isStealthedEnemy) {
+        ctx.globalAlpha = 0.11; // Quasi invisibile nella nebbia se lontano!
+      } else if ((p.shipClass === 'phantom' && isBuffActive) || !p.lanternOn) {
+        ctx.globalAlpha = 0.42;
       }
 
-      // Usa shadowBlur solo quando un buff speciale è attivo (risparmia GPU)
-      if (isBuffActive) {
+      if (isBuffActive || p.isElite) {
         ctx.shadowBlur = 22;
-        ctx.shadowColor = p.shipClass === 'juggernaut' ? '#fb923c' : (p.shipClass === 'phantom' ? '#38bdf8' : '#e879f9');
+        ctx.shadowColor = p.isElite ? '#f43f5e' : (p.shipClass === 'juggernaut' ? '#fb923c' : (p.shipClass === 'stormcaller' ? '#38bdf8' : '#e879f9'));
       }
 
       const scaleRecoil = 1 - rp.recoil * 0.06;
-      ctx.scale(scaleRecoil, 1 + rp.recoil * 0.08);
+      const eliteScale = p.isElite ? 1.14 : 1.0;
+      ctx.scale(scaleRecoil * eliteScale, (1 + rp.recoil * 0.08) * eliteScale);
 
       const customCanvas = p.isBot ? assets.botHull : assets.playerHull;
 
@@ -1775,9 +1847,20 @@
         ctx.stroke();
       }
 
+      // Bagliore Lanterna a Prua (solo se accesa!)
+      if (p.lanternOn) {
+        ctx.fillStyle = '#fde047';
+        ctx.beginPath();
+        ctx.arc(34, 0, 3.8, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
       ctx.shadowBlur = 0;
       ctx.globalAlpha = 1;
       ctx.restore();
+
+      // Nasconde l'etichetta del nome e barra vita se il nemico è furtivo e distante
+      if (isStealthedEnemy) return;
 
       ctx.save();
       ctx.font = '600 12px Inter';
@@ -1798,16 +1881,43 @@
       ctx.font = '600 12px Inter';
       const classTag = p.shipClass ? ` • ${p.shipClass.toUpperCase()}` : '';
       const relicIcons = (p.inventory || []).map(r => `${r.icon}${r.level > 1 ? r.level : ''}`).join(' ');
-      const wantedCrown = p.isMostWanted ? '👑 [TAGLIA] ' : '';
-      ctx.fillStyle = p.isMostWanted ? '#facc15' : (p.id === myId ? skinColor : (p.isBot ? '#c084fc' : '#e2d9c8'));
-      ctx.fillText(`${wantedCrown}${p.name} [Lv.${p.level}${classTag}] ${relicIcons}`, rp.x, rp.y - 54);
+      const prefixTag = p.isMostWanted ? '👑 [TAGLIA] ' : (p.isElite ? '👹 [ELITE] ' : (!p.lanternOn ? '🌑 ' : ''));
+      ctx.fillStyle = p.isMostWanted ? '#facc15' : (p.isElite ? '#fb7185' : (p.id === myId ? skinColor : (p.isBot ? '#c084fc' : '#e2d9c8')));
+      ctx.fillText(`${prefixTag}${p.name} [Lv.${p.level}${classTag}] ${relicIcons}`, rp.x, rp.y - 54);
 
-      const barW = 58;
+      const barW = p.isElite ? 68 : 58;
       ctx.fillStyle = 'rgba(0,0,0,0.75)';
       ctx.fillRect(rp.x - barW / 2, rp.y - 45, barW, 6);
       ctx.fillStyle = p.isRepairing ? '#4ade80' : (hpRatio > 0.4 ? '#14b8a6' : (hpRatio > 0.2 ? '#f59e0b' : '#ef4444'));
       ctx.fillRect(rp.x - barW / 2, rp.y - 45, barW * Math.max(0, hpRatio), 6);
       ctx.restore();
+    }
+
+    // Disegna gli archi di fulmine tra il Tempestario e i bersagli colpiti
+    function drawLightningBolts() {
+      for (let i = lightningBolts.length - 1; i >= 0; i--) {
+        const lb = lightningBolts[i];
+        lb.alpha -= 0.06;
+        if (lb.alpha <= 0) {
+          lightningBolts.splice(i, 1);
+          continue;
+        }
+        ctx.save();
+        ctx.strokeStyle = `rgba(56, 189, 248, ${lb.alpha})`;
+        ctx.lineWidth = 3.5;
+        ctx.beginPath();
+        ctx.moveTo(lb.x1, lb.y1);
+        const segments = 6;
+        for (let s = 1; s < segments; s++) {
+          const t = s / segments;
+          const nx = lb.x1 + (lb.x2 - lb.x1) * t + (Math.random() - 0.5) * 28;
+          const ny = lb.y1 + (lb.y2 - lb.y1) * t + (Math.random() - 0.5) * 28;
+          ctx.lineTo(nx, ny);
+        }
+        ctx.lineTo(lb.x2, lb.y2);
+        ctx.stroke();
+        ctx.restore();
+      }
     }
 
     function render() {
@@ -1833,7 +1943,6 @@
       ctx.save();
       ctx.translate(canvas.width / 2 - camera.x + shakeX, canvas.height / 2 - camera.y + shakeY);
 
-      // Disegna la texture dell'acqua solo per il rettangolo visibile della telecamera (enorme boost FPS!)
       if (assets.waterPattern) {
         ctx.fillStyle = assets.waterPattern;
         ctx.fillRect(
@@ -1865,7 +1974,6 @@
         ctx.globalAlpha = 1;
       }
 
-      // Anime Abissali con Viewport Culling e cerchio doppio leggero (niente shadowBlur costoso)
       const pulse = Math.sin(Date.now() * 0.006) * 2.0;
       for (let s of gameState.souls) {
         if (!isInView(s.x, s.y, 30)) continue;
@@ -1885,8 +1993,8 @@
       drawRocks();
       drawBoss();
       Object.values(gameState.players).forEach(drawShip);
+      drawLightningBolts();
 
-      // Palle di cannone con Viewport Culling
       for (let b of gameState.bullets) {
         if (!isInView(b.x, b.y, 30)) continue;
         ctx.fillStyle = b.color || '#ccfbf1';
@@ -1941,14 +2049,11 @@
       drawMinimap();
     }
 
-    const mmCanvas = document.getElementById('minimapCanvas');
-    const mmCtx = mmCanvas.getContext('2d');
-
+    // Disegna sul canvas dedicato #minimapCanvas sopra la vignettatura (z-index: 10)
     function drawMinimap() {
       const size = 145;
       mmCtx.clearRect(0, 0, size, size);
 
-      // Cerchio Tempesta
       const st = gameState.storm;
       mmCtx.strokeStyle = '#ef4444';
       mmCtx.lineWidth = 1.2;
@@ -1956,7 +2061,6 @@
       mmCtx.arc((st.x / mapSize) * size, (st.y / mapSize) * size, (st.radius / mapSize) * size, 0, Math.PI * 2);
       mmCtx.stroke();
 
-      // Portale di Estrazione Verde
       if (gameState.extractionPortal && gameState.extractionPortal.active) {
         mmCtx.strokeStyle = '#4ade80';
         mmCtx.lineWidth = 2;
@@ -1971,7 +2075,6 @@
         mmCtx.stroke();
       }
 
-      // Mercante Nero Viola
       if (gameState.blackMerchant) {
         mmCtx.fillStyle = '#e879f9';
         mmCtx.fillRect(
@@ -1982,7 +2085,6 @@
         );
       }
 
-      // Isola del Tesoro
       if (gameState.treasureIsland && gameState.treasureIsland.active) {
         mmCtx.strokeStyle = '#facc15';
         mmCtx.lineWidth = 1.5;
@@ -1997,7 +2099,6 @@
         mmCtx.stroke();
       }
 
-      // Galeone Imperiale
       if (gameState.treasureGalleon && gameState.treasureGalleon.active) {
         mmCtx.fillStyle = '#fde047';
         mmCtx.fillRect(
@@ -2008,7 +2109,6 @@
         );
       }
 
-      // Boss Leviatano
       if (gameState.boss && gameState.boss.alive) {
         mmCtx.fillStyle = gameState.boss.enraged ? '#f43f5e' : '#c084fc';
         mmCtx.beginPath();
@@ -2016,7 +2116,6 @@
         mmCtx.fill();
       }
 
-      // Reliquie
       (gameState.relics || []).forEach(rel => {
         mmCtx.fillStyle = '#eab308';
         mmCtx.beginPath();
@@ -2024,11 +2123,12 @@
         mmCtx.fill();
       });
 
-      // Navi
       Object.values(gameState.players).forEach(p => {
-        mmCtx.fillStyle = p.isMostWanted ? '#facc15' : (p.id === myId ? '#2dd4bf' : (p.isBot ? '#a855f7' : '#f87171'));
+        // I nemici con Lanterna Spenta [L] NON compaiono sulla minimappa!
+        if (p.id !== myId && !p.lanternOn) return;
+        mmCtx.fillStyle = p.isMostWanted ? '#facc15' : (p.isElite ? '#fb7185' : (p.id === myId ? '#2dd4bf' : (p.isBot ? '#a855f7' : '#f87171')));
         mmCtx.beginPath();
-        mmCtx.arc((p.x / mapSize) * size, (p.y / mapSize) * size, p.id === myId || p.isMostWanted ? 3.8 : 2.2, 0, Math.PI * 2);
+        mmCtx.arc((p.x / mapSize) * size, (p.y / mapSize) * size, p.id === myId || p.isMostWanted || p.isElite ? 3.8 : 2.2, 0, Math.PI * 2);
         mmCtx.fill();
       });
     }

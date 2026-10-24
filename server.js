@@ -26,7 +26,6 @@ let relics = [];
 let consumables = [];
 let seaMines = [];
 
-// Coda di Respawn Ritardato per i Bot (evita il respawn istantaneo)
 let botRespawnCooldownUntil = 0;
 
 let lobbyState = {
@@ -145,7 +144,6 @@ function generateMapRocks() {
 }
 
 function spawnSoul(x = null, y = null, value = 18, isBossDrop = false) {
-  // Genera anime solo all'interno del cerchio attuale della tempesta
   let sx = x;
   let sy = y;
   if (sx === null || sy === null) {
@@ -196,7 +194,6 @@ const botNames = [
   'Furia di Sangue'
 ];
 
-// Trova il punto di spawn più isolato possibile (lontano da giocatori, altri bot e dal Boss)
 function findBestSpawnPosition() {
   let bestX = storm.x + 600;
   let bestY = storm.y + 600;
@@ -227,7 +224,7 @@ function findBestSpawnPosition() {
   return { x: Math.round(bestX), y: Math.round(bestY) };
 }
 
-function createShip(id, name, isBot = false, meta = {}) {
+function createShip(id, name, isBot = false, meta = {}, isElite = false) {
   const spawnPos = findBestSpawnPosition();
 
   const hullLv = Math.min(10, Math.max(0, Number(meta.hullLv) || 0));
@@ -235,16 +232,17 @@ function createShip(id, name, isBot = false, meta = {}) {
   const sailLv = Math.min(10, Math.max(0, Number(meta.sailLv) || 0));
   const soulLv = Math.min(10, Math.max(0, Number(meta.soulLv) || 0));
 
-  const baseHp = 115 + hullLv * 8;
-  const baseDmg = 18 + cannonLv * 1.0;
-  const baseSpeed = 5.5 + sailLv * 0.14;
+  const baseHp = (isElite ? 185 : 115) + hullLv * 8;
+  const baseDmg = (isElite ? 22 : 18) + cannonLv * 1.0;
+  const baseSpeed = 5.45 + sailLv * 0.14;
 
-  return {
+  const ship = {
     id,
     name: name || 'Pirata Maledetto',
     isBot,
+    isElite,
     meta,
-    skin: meta.skin || (isBot ? 'void' : 'emerald'),
+    skin: isElite ? 'crimson' : (meta.skin || (isBot ? 'void' : 'emerald')),
     shipClass: null,
     x: spawnPos.x,
     y: spawnPos.y,
@@ -252,8 +250,8 @@ function createShip(id, name, isBot = false, meta = {}) {
     speed: 0,
     baseMaxSpeed: baseSpeed,
     maxSpeed: baseSpeed,
-    baseTurnSpeed: 0.045 + sailLv * 0.001,
-    turnSpeed: 0.045 + sailLv * 0.001,
+    baseTurnSpeed: 0.044 + sailLv * 0.001,
+    turnSpeed: 0.044 + sailLv * 0.001,
     baseMaxHp: baseHp,
     hp: baseHp,
     maxHp: baseHp,
@@ -262,14 +260,19 @@ function createShip(id, name, isBot = false, meta = {}) {
     baseReloadTime: 1350,
     reloadTime: 1350,
     lastShot: 0,
-    level: 1,
+    level: isElite ? 3 : 1,
     xp: soulLv * 10,
-    maxXp: 45,
+    maxXp: isElite ? 78 : 45,
     skillPoints: 0,
     statUpgrades: { hull: 0, cannons: 0, sails: 0, reload: 0 },
     kills: 0,
     soulsCollected: 0,
     isMostWanted: false,
+    // Sistema Lanterna Furtiva [L]
+    lanternOn: true,
+    stealthSince: 0,
+    // Shock Elettrico del Tempestario
+    shockedUntil: 0,
     extractProgress: 0,
     emote: null,
     emoteUntil: 0,
@@ -296,24 +299,32 @@ function createShip(id, name, isBot = false, meta = {}) {
     botTimer: Math.floor(Math.random() * 100),
     patrolAngle: Math.random() * Math.PI * 2
   };
+
+  // I Capitani Rinnegati Elite nascono già con 2 Reliquie equipaggiate!
+  if (isElite) {
+    const r1 = RELIC_TYPES[Math.floor(Math.random() * RELIC_TYPES.length)];
+    const r2 = RELIC_TYPES[( RELIC_TYPES.indexOf(r1) + 2 ) % RELIC_TYPES.length];
+    ship.inventory.push({ id: r1.id, name: r1.name, icon: r1.icon, color: r1.color, level: 1, desc: r1.baseDesc });
+    ship.inventory.push({ id: r2.id, name: r2.name, icon: r2.icon, color: r2.color, level: 1, desc: r2.baseDesc });
+    recalculateShipStats(ship);
+    ship.hp = ship.maxHp;
+  }
+
+  return ship;
 }
 
 // =========================================================
-// AI DIRECTOR: POPOLAZIONE BOT DINAMICA IN BASE ALLO SPAZIO
+// AI DIRECTOR + CAPITANI RINNEGATI ELITE
 // =========================================================
 function getTargetBotCount() {
   const allShips = Object.values(players);
   const humanCount = allShips.filter(p => !p.isBot).length;
-
-  // Calcola quanti vascelli può ospitare comodamente il cerchio attuale della tempesta
-  // All'inizio (raggio ~2700) maxShips = 5. A metà (raggio ~1400) = 3. In finale (<800) = 1.
   const areaRatio = Math.max(0.18, storm.radius / (MAP_SIZE * 0.68));
   let maxComfortableShips = Math.max(2, Math.round(5 * areaRatio));
 
   if (lobbyState.phase === 'eclipse') {
     maxComfortableShips = Math.min(2, maxComfortableShips);
   }
-
   return Math.max(1, maxComfortableShips - humanCount);
 }
 
@@ -323,21 +334,33 @@ function manageBotPopulation(now) {
   const targetBots = getTargetBotCount();
   const currentBots = Object.values(players).filter(p => p.isBot);
 
-  // 1. Se siamo sotto il numero target e il cooldown di respawn è passato, genera 1 Bot lontano dagli altri
   if (currentBots.length < targetBots && now >= botRespawnCooldownUntil) {
+    const hasEliteAlive = currentBots.some(b => b.isElite);
+    const spawnAsElite = !hasEliteAlive && Math.random() < 0.32;
+
     const usedNames = new Set(currentBots.map(b => b.name));
-    const availableName = botNames.find(n => !usedNames.has(n)) || 'Spettro Errante';
+    const availableName = spawnAsElite
+      ? 'Capitano Rinnegato'
+      : (botNames.find(n => !usedNames.has(n)) || 'Spettro Errante');
+
     const botId = `bot_${Math.random().toString(36).substr(2, 5)}`;
-    players[botId] = createShip(botId, availableName, true);
-    botRespawnCooldownUntil = now + 7500; // Almeno 7.5s prima del prossimo spawn
+    players[botId] = createShip(botId, availableName, true, {}, spawnAsElite);
+    botRespawnCooldownUntil = now + 7500;
+
+    if (spawnAsElite) {
+      io.emit('worldAnnouncement', {
+        title: '👹 UN CAPITANO RINNEGATO ELITE È ENTRATO NELL\'ARENA!',
+        subtitle: 'Naviga con 2 Reliquie Maledette: affondalo per saccheggiare il suo tesoro!',
+        color: '#fb7185'
+      });
+    }
   }
 
-  // 2. Se il cerchio si è ristretto e ci sono TROPPI bot, fa ritirare nell'abisso il bot più lontano e debole
   if (currentBots.length > targetBots) {
     const humanList = Object.values(players).filter(p => !p.isBot);
     for (let b of currentBots) {
+      if (b.isElite) continue; // Non rimuovere mai un Elite attivo
       const closeToHuman = humanList.some(h => Math.hypot(h.x - b.x, h.y - b.y) < 620);
-      // Rimuove solo un bot che non è attualmente ingaggiato a schermo con un giocatore
       if (!closeToHuman) {
         delete players[b.id];
         break;
@@ -404,7 +427,6 @@ function resetEntireLobby() {
   blackMerchant.x = Math.round(900 + Math.random() * 2200);
   blackMerchant.y = Math.round(900 + Math.random() * 2200);
 
-  // Rimuove i vecchi bot e rigenera solo i giocatori umani connessi
   const currentIds = Object.keys(players);
   currentIds.forEach(id => {
     const old = players[id];
@@ -415,7 +437,6 @@ function resetEntireLobby() {
     }
   });
 
-  // L'AI Director ripopolerà gradualmente i bot
   botRespawnCooldownUntil = now + 1500;
 
   io.emit('lobbyReset', { rocks });
@@ -433,15 +454,17 @@ for (let i = 0; i < MAX_CONSUMABLES; i++) spawnConsumable();
 function recalculateShipStats(p) {
   let maxHp = p.baseMaxHp + (p.level - 1) * 12 + p.statUpgrades.hull * 30;
   let dmg = p.baseDamage + p.statUpgrades.cannons * 5;
-  let maxSpd = p.baseMaxSpeed + p.statUpgrades.sails * 0.6;
+  let maxSpd = p.baseMaxSpeed + p.statUpgrades.sails * 0.58;
   let turnSpd = p.baseTurnSpeed + p.statUpgrades.sails * 0.004;
   let reload = Math.max(400, p.baseReloadTime - p.statUpgrades.reload * 140);
   let lifesteal = 0;
   let armor = 0;
 
+  // Bilanciamento v1.0 delle 4 Classi
   if (p.shipClass === 'juggernaut') { maxHp += 90; armor += 0.20; }
-  if (p.shipClass === 'phantom') { maxSpd += 1.25; turnSpd += 0.01; }
+  if (p.shipClass === 'phantom') { maxSpd += 1.05; turnSpd += 0.009; } // Leggero trim (-5%) per bilanciare il LERP
   if (p.shipClass === 'necromancer') { maxHp += 45; dmg += 5; lifesteal += 0.45; }
+  if (p.shipClass === 'stormcaller') { maxHp += 55; dmg += 4.5; reload *= 0.90; }
 
   const ids = new Set();
   p.inventory.forEach(r => {
@@ -458,7 +481,7 @@ function recalculateShipStats(p) {
       armor += 0.09 * lv;
       r.desc = `+${55 * lv} HP & +${Math.round(9 * lv)}% Corazza`;
     } else if (r.id === 'compass') {
-      maxSpd += 0.65 * lv;
+      maxSpd += 0.62 * lv;
       turnSpd += 0.004 * lv;
       r.desc = `+${Math.round(12 * lv)}% Velocità`;
     } else if (r.id === 'lantern') {
@@ -573,6 +596,7 @@ function interruptRepair(ship, reasonText = 'Riparazione Interrotta!') {
 
 function getSkinBulletColor(skin, shipClass, isHellfire) {
   if (isHellfire) return '#f97316';
+  if (shipClass === 'stormcaller') return '#38bdf8';
   if (shipClass === 'necromancer') return '#c084fc';
   if (skin === 'crimson') return '#fb7185';
   if (skin === 'gold') return '#fde047';
@@ -588,6 +612,16 @@ function fireBroadsides(ship) {
 
   if (ship.isRepairing) interruptRepair(ship);
 
+  // Bonus Imboscata Furtiva (+25% Danni se eri a lanterna spenta da almeno 2 secondi!)
+  let ambushMult = 1.0;
+  if (!ship.lanternOn) {
+    ship.lanternOn = true;
+    if (now - ship.stealthSince >= 2000) {
+      ambushMult = 1.25;
+      io.emit('dmgNum', { x: Math.round(ship.x), y: Math.round(ship.y - 42), text: '🎯 IMBOSCATA (+25% DANNO)!', color: '#facc15' });
+    }
+  }
+
   const isHellfire = ship.hellfireCharged;
   ship.hellfireCharged = false;
 
@@ -598,7 +632,7 @@ function fireBroadsides(ship) {
 
   const weatherSpdBonus = lobbyState.weather === 'gale' ? 2.0 : 0;
   const bulletSpeed = (ship.inventory.some(r => r.id === 'powder') ? 15.5 : 13.5) + weatherSpdBonus;
-  const dmgMult = isHellfire ? 1.45 : 1.0;
+  const dmgMult = (isHellfire ? 1.45 : 1.0) * ambushMult;
 
   sides.forEach(sideOffset => {
     spreadAngles.forEach(spread => {
@@ -607,6 +641,7 @@ function fireBroadsides(ship) {
         ownerId: ship.id,
         isBossBullet: false,
         homing: false,
+        shockOnHit: ship.shipClass === 'stormcaller',
         lifestealRatio: ship.lifestealBonus,
         x: Math.round(ship.x + Math.cos(fireAngle) * 30),
         y: Math.round(ship.y + Math.sin(fireAngle) * 30),
@@ -694,14 +729,50 @@ function activateAbility(ship) {
         lifestealRatio: 0.65 + ship.lifestealBonus,
         x: Math.round(ship.x + Math.cos(a) * 36),
         y: Math.round(ship.y + Math.sin(a) * 36),
-        vx: Math.cos(a) * 9.5,
-        vy: Math.sin(a) * 9.5,
+        vx: Math.cos(a) * 9.2,
+        vy: Math.sin(a) * 9.2,
         damage: ship.damage * 1.15,
         color: '#e879f9',
-        life: 90
+        life: 88
       });
     }
     io.emit('abilityFx', { x: Math.round(ship.x), y: Math.round(ship.y), type: 'necromancer' });
+  } else if (ship.shipClass === 'stormcaller') {
+    // QUARTA CLASSE (IL TEMPESTARIO): Scarica Catena di Fulmini su fino a 4 bersagli entro 370px!
+    ship.activeBuffUntil = now + 2200;
+    const zappedTargets = [];
+    const zapDmg = Math.round(36 + ship.damage * 1.25);
+
+    for (let id in players) {
+      if (id === ship.id) continue;
+      const t = players[id];
+      if (Math.hypot(t.x - ship.x, t.y - ship.y) <= 370 && zappedTargets.length < 4) {
+        t.hp -= zapDmg;
+        t.shockedUntil = now + 2200; // Paralizza le vele (-65% velocità)
+        t.lanternOn = true; // Il fulmine rivela i nemici furtivi!
+        if (t.isRepairing) interruptRepair(t, 'Folgorato!');
+        emitDamageNumber(t.x, t.y - 20, zapDmg, '#38bdf8', '⚡ ');
+        zappedTargets.push({ x: Math.round(t.x), y: Math.round(t.y) });
+
+        if (t.hp <= 0 && !ship.isBot) {
+          ship.kills++;
+          ship.xp += 80;
+          io.to(ship.id).emit('questEvent', { type: 'kill', amount: 1, doubloons: 12 });
+        }
+      }
+    }
+
+    if (boss.alive && Math.hypot(boss.x - ship.x, boss.y - ship.y) <= 400 && zappedTargets.length < 4) {
+      boss.hp -= zapDmg;
+      emitDamageNumber(boss.x, boss.y - 20, zapDmg, '#38bdf8', '⚡ ');
+      zappedTargets.push({ x: Math.round(boss.x), y: Math.round(boss.y) });
+    }
+
+    io.emit('lightningFx', {
+      fromX: Math.round(ship.x),
+      fromY: Math.round(ship.y),
+      targets: zappedTargets
+    });
   }
 }
 
@@ -718,12 +789,13 @@ function startShipRepair(ship) {
 
 function applyClassEvolution(p, chosenClass) {
   if (p.level < 4 || p.shipClass) return;
-  if (!['juggernaut', 'phantom', 'necromancer'].includes(chosenClass)) return;
+  if (!['juggernaut', 'phantom', 'necromancer', 'stormcaller'].includes(chosenClass)) return;
 
   p.shipClass = chosenClass;
   if (chosenClass === 'juggernaut') p.abilityCd = 8000;
   else if (chosenClass === 'phantom') p.abilityCd = 10500;
   else if (chosenClass === 'necromancer') p.abilityCd = 9500;
+  else if (chosenClass === 'stormcaller') p.abilityCd = 8500;
 
   recalculateShipStats(p);
   p.hp = p.maxHp;
@@ -738,7 +810,7 @@ io.on('connection', (socket) => {
     const meta = isObj ? payload.meta : {};
     const cleanName = (rawName || 'Capitano Senza Nome').trim().slice(0, 18);
 
-    players[socket.id] = createShip(socket.id, cleanName, false, meta);
+    players[socket.id] = createShip(socket.id, cleanName, false, meta, false);
     socket.emit('init', { id: socket.id, mapSize: MAP_SIZE, rocks });
   });
 
@@ -756,6 +828,19 @@ io.on('connection', (socket) => {
 
   socket.on('useConsumable', () => {
     if (players[socket.id]) useConsumableItem(players[socket.id]);
+  });
+
+  socket.on('toggleLantern', () => {
+    const p = players[socket.id];
+    if (!p) return;
+    p.lanternOn = !p.lanternOn;
+    p.stealthSince = p.lanternOn ? 0 : Date.now();
+    io.emit('dmgNum', {
+      x: Math.round(p.x),
+      y: Math.round(p.y - 32),
+      text: p.lanternOn ? '🔦 Lanterna Accesa' : '🌑 Furtività Attiva',
+      color: p.lanternOn ? '#fde047' : '#94a3b8'
+    });
   });
 
   socket.on('useMerchant', () => {
@@ -804,13 +889,10 @@ io.on('connection', (socket) => {
   });
 });
 
-// =========================================================
-// NUOVA AI BOT CON SEPARAZIONE SPAZIALE (ANTI-CLUSTERING)
-// =========================================================
 function updateBotAI(bot) {
   bot.botTimer++;
   if (bot.level >= 4 && !bot.shipClass) {
-    const classes = ['juggernaut', 'phantom', 'necromancer'];
+    const classes = ['juggernaut', 'phantom', 'necromancer', 'stormcaller'];
     applyClassEvolution(bot, classes[Math.floor(Math.random() * classes.length)]);
   }
   if (bot.skillPoints > 0) {
@@ -825,8 +907,6 @@ function updateBotAI(bot) {
   if (bot.consumable && Math.random() < 0.02) useConsumableItem(bot);
 
   const distToCenter = Math.hypot(bot.x - storm.x, bot.y - storm.y);
-
-  // Calcola vettore di repulsione da altri bot vicini (< 340px) e dal centro del Boss
   let avoidX = 0;
   let avoidY = 0;
 
@@ -834,7 +914,6 @@ function updateBotAI(bot) {
     if (otherId === bot.id) continue;
     const other = players[otherId];
     const d = Math.hypot(bot.x - other.x, bot.y - other.y);
-    // I bot si respingono tra loro per non ammassarsi nella stessa zona
     const minSpace = other.isBot ? 360 : 210;
     if (d < minSpace && d > 1) {
       avoidX += ((bot.x - other.x) / d) * 2.2;
@@ -842,7 +921,6 @@ function updateBotAI(bot) {
     }
   }
 
-  // Evita di suicidarsi in bocca al Leviatano al centro
   if (boss.alive) {
     const dBoss = Math.hypot(bot.x - boss.x, bot.y - boss.y);
     if (dBoss < 320 && dBoss > 1) {
@@ -854,14 +932,11 @@ function updateBotAI(bot) {
   let desiredAngle = bot.patrolAngle;
 
   if (distToCenter > storm.radius * 0.78) {
-    // Rientra dalla tempesta
     desiredAngle = Math.atan2(storm.y - bot.y, storm.x - bot.x);
   } else if (Math.hypot(avoidX, avoidY) > 0.2) {
-    // Virata di separazione per mantenere le distanze
     desiredAngle = Math.atan2(avoidY, avoidX);
     bot.patrolAngle = desiredAngle;
   } else if (bot.botTimer % 75 === 0) {
-    // Cambia dolcemente rotta di pattuglia
     bot.patrolAngle += (Math.random() - 0.5) * 1.4;
     desiredAngle = bot.patrolAngle;
   }
@@ -871,18 +946,26 @@ function updateBotAI(bot) {
   bot.inputs.right = angleDiff > 0.08;
   bot.inputs.up = true;
 
+  // I Bot ignorano i giocatori con Lanterna Spenta [L] a meno che non siano vicinissimi (<175px)
   if (!bot.isRepairing) {
     for (let id in players) {
       if (id === bot.id) continue;
       const target = players[id];
       const d = Math.hypot(target.x - bot.x, target.y - bot.y);
-      if (d < 410) {
+      const canSeeTarget = target.lanternOn || d < 175;
+      if (canSeeTarget && d < 410) {
         fireBroadsides(bot);
         if (bot.shipClass && Math.random() < 0.05) activateAbility(bot);
         break;
       }
     }
   }
+}
+
+// Calcola il bottino dinamico di estrazione per una nave (scala con Livello, Kill e Stelle Reliquie)
+function calculateExtractionPayout(p, rewardMult) {
+  const relicStars = (p.inventory || []).reduce((acc, r) => acc + (r.level || 1), 0);
+  return (25 + p.level * 12 + p.kills * 18 + relicStars * 24) * rewardMult;
 }
 
 setInterval(() => {
@@ -912,7 +995,6 @@ setInterval(() => {
     return;
   }
 
-  // Gestisce dinamicamente il numero di Bot in base al raggio della mappa e ai giocatori umani
   manageBotPopulation(now);
 
   const timeRemaining = lobbyState.matchEndTime - now;
@@ -961,7 +1043,7 @@ setInterval(() => {
 
     io.emit('worldAnnouncement', {
       title: '🌀 UN PORTALE DI ESTRAZIONE SI È APERTO!',
-      subtitle: 'Resta nel vortice verde per 5s per tornare al Porto con +50 Dobloni Bonus!',
+      subtitle: 'Il bonus Dobloni scala con il tuo Livello e le Reliquie equipaggiate!',
       color: '#4ade80'
     });
   }
@@ -978,6 +1060,7 @@ setInterval(() => {
   }
   if (topPlayerId && players[topPlayerId]) {
     players[topPlayerId].isMostWanted = true;
+    players[topPlayerId].lanternOn = true; // Il Most Wanted non può nascondersi a lanterna spenta!
   }
 
   if (!treasureGalleon.active && now >= treasureGalleon.nextSpawnTime) {
@@ -1152,6 +1235,7 @@ setInterval(() => {
 
     const isBuffActive = now < p.activeBuffUntil;
     const isNitroActive = now < p.nitroUntil;
+    const isShocked = now < p.shockedUntil;
 
     if (p.isRepairing) {
       if (now >= p.repairUntil || p.hp >= p.maxHp) {
@@ -1169,7 +1253,7 @@ setInterval(() => {
         if (p.extractProgress >= 100) {
           extractionPortal.active = false;
           extractionPortal.nextSpawnTime = now + 75000;
-          const extractBonus = (p.kills * 15 + p.level * 10 + 50) * rewardMult;
+          const extractBonus = calculateExtractionPayout(p, rewardMult);
           io.to(id).emit('extracted', {
             level: p.level,
             kills: p.kills,
@@ -1215,16 +1299,18 @@ setInterval(() => {
     }
 
     let speedMult = lobbyState.weather === 'gale' ? 1.25 : 1.0;
-    if (p.shipClass === 'phantom' && isBuffActive) speedMult *= 1.45;
+    if (p.shipClass === 'phantom' && isBuffActive) speedMult *= 1.42;
     if (p.shipClass === 'juggernaut' && isBuffActive) speedMult *= 1.85;
     if (isNitroActive) speedMult = Math.max(speedMult, 1.55);
     if (p.isRepairing) speedMult *= 0.65;
+    if (isShocked) speedMult *= 0.35; // Paralisi elettrica del Tempestario!
 
     const effectiveMaxSpeed = p.maxSpeed * speedMult;
 
-    if (p.inputs.up) p.speed = Math.min(effectiveMaxSpeed, p.speed + 0.2);
+    // Attrito dell'acqua leggermente più marcato (0.955) per scontri più tattici
+    if (p.inputs.up) p.speed = Math.min(effectiveMaxSpeed, p.speed + 0.19);
     else if (p.inputs.down) p.speed = Math.max(-effectiveMaxSpeed * 0.35, p.speed - 0.12);
-    else p.speed *= 0.96;
+    else p.speed *= 0.955;
 
     if (p.inputs.left) p.angle -= p.turnSpeed;
     if (p.inputs.right) p.angle += p.turnSpeed;
@@ -1338,18 +1424,16 @@ setInterval(() => {
       }
     }
 
-    // Arrotonda le coordinate per alleggerire il payload JSON di rete
     p.x = Math.round(p.x * 10) / 10;
     p.y = Math.round(p.y * 10) / 10;
     p.angle = Number(p.angle.toFixed(3));
     p.hp = Math.round(p.hp);
 
-    // Morte Nave: I bot NON rinascono più istantaneamente, ma entrano nella coda dell'AI Director (8s di pausa)
     if (p.hp <= 0) {
-      for (let k = 0; k < 5; k++) {
+      for (let k = 0; k < (p.isElite ? 9 : 5); k++) {
         spawnSoul(p.x + (Math.random() - 0.5) * 100, p.y + (Math.random() - 0.5) * 100, 40, true);
       }
-      if (Math.random() < 0.45) {
+      if (p.isElite || Math.random() < 0.45) {
         spawnRelicDrop(p.x, p.y, false);
       }
 
@@ -1369,6 +1453,24 @@ setInterval(() => {
     }
   }
 
+  // CONTROMOSSA v1.0: I proiettili normali possono intercettare e distruggere i Teschi Homing del Negromante!
+  for (let i = bullets.length - 1; i >= 0; i--) {
+    const b1 = bullets[i];
+    if (!b1 || !b1.homing) continue;
+    for (let j = bullets.length - 1; j >= 0; j--) {
+      if (i === j) continue;
+      const b2 = bullets[j];
+      if (!b2 || b2.homing || b2.isBossBullet || b2.ownerId === b1.ownerId) continue;
+      if (Math.hypot(b1.x - b2.x, b1.y - b2.y) < 20) {
+        io.emit('hitEffect', { x: Math.round(b1.x), y: Math.round(b1.y) });
+        io.emit('dmgNum', { x: Math.round(b1.x), y: Math.round(b1.y - 10), text: '💥 Teschio Distrutto!', color: '#e879f9' });
+        bullets.splice(Math.max(i, j), 1);
+        bullets.splice(Math.min(i, j), 1);
+        break;
+      }
+    }
+  }
+
   // Aggiorna Proiettili
   for (let i = bullets.length - 1; i >= 0; i--) {
     const b = bullets[i];
@@ -1379,6 +1481,8 @@ setInterval(() => {
       for (let tid in players) {
         if (tid === b.ownerId) continue;
         const t = players[tid];
+        // I teschi non agganciano chi ha la Lanterna Spenta [L] oltre 170px!
+        if (!t.lanternOn && Math.hypot(t.x - b.x, t.y - b.y) > 170) continue;
         const d = Math.hypot(t.x - b.x, t.y - b.y);
         if (d < minDist) { minDist = d; closestTarget = t; }
       }
@@ -1507,6 +1611,9 @@ setInterval(() => {
         target.hp -= finalDmg;
         target.extractProgress = 0;
 
+        // Passiva Tempestario: i colpi applicano micro-shock rallentante per 0.6s
+        if (b.shockOnHit) target.shockedUntil = Math.max(target.shockedUntil, now + 600);
+
         if (target.isRepairing) interruptRepair(target, 'Colpito! Riparazione Interrotta!');
 
         emitDamageNumber(target.x, target.y - 15, finalDmg, '#f87171');
@@ -1522,7 +1629,7 @@ setInterval(() => {
         if (target.hp <= 0 && players[b.ownerId]) {
           const killer = players[b.ownerId];
           killer.kills++;
-          killer.xp += 80;
+          killer.xp += target.isElite ? 140 : 80;
 
           if (lobbyState.weather === 'bloodfog') {
             const bloodHeal = Math.round(killer.maxHp * 0.3);
@@ -1530,12 +1637,18 @@ setInterval(() => {
             emitDamageNumber(killer.x, killer.y - 25, bloodHeal, '#f43f5e', '🩸 +');
           }
 
-          const bountyBonus = (target.isMostWanted ? 80 : 10) * rewardMult;
+          let bountyBonus = (target.isMostWanted ? 80 : (target.isElite ? 45 : 10)) * rewardMult;
           if (target.isMostWanted) {
             io.emit('worldAnnouncement', {
               title: `💀 TAGLIA RISCOSSA! ${killer.name.toUpperCase()} HA AFFONDATO IL TERRORE DEI MARI!`,
               subtitle: `Incassa una taglia speciale di +${bountyBonus} Dobloni Abissali!`,
               color: '#fbbf24'
+            });
+          } else if (target.isElite) {
+            io.emit('worldAnnouncement', {
+              title: `👹 ${killer.name.toUpperCase()} HA SCONFITTO IL CAPITANO RINNEGATO ELITE!`,
+              subtitle: `Ottiene +${bountyBonus} Dobloni e Reliquie Maledette!`,
+              color: '#fb7185'
             });
           }
 
@@ -1570,5 +1683,5 @@ setInterval(() => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  console.log(`🏴‍☠️ Abyssal Sails RPG v0.9 (AI Director & 60FPS Engine) attivo su http://localhost:${PORT}`);
+  console.log(`🏴‍☠️ Abyssal Sails RPG v1.0 (Stealth Lanterns, Stormcaller & Elite Captains) attivo su http://localhost:${PORT}`);
 });
