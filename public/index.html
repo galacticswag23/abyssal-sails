@@ -39,7 +39,7 @@
     #quest-toast p { font-size: 0.78rem; color: #e2e8f0; margin-top: 2px; }
 
     /* =====================================================
-       HOME PAGE DASHBOARD ("IL PORTO MALEDETTO" v0.6)
+       HOME PAGE DASHBOARD ("IL PORTO MALEDETTO" v0.7)
        ===================================================== */
     #overlay {
       position: fixed; inset: 0;
@@ -110,7 +110,6 @@
     }
     .stat-box b { display: block; font-size: 0.95rem; color: #e2e8f0; margin-top: 2px; }
 
-    /* Colonna Centrale */
     .center-card { align-items: center; text-align: center; justify-content: space-between; }
     #death-report {
       width: 100%; background: rgba(127, 29, 29, 0.22); border: 1px solid #dc2626;
@@ -131,7 +130,6 @@
     .skin-btn.active { border-color: #2dd4bf; background: rgba(45, 212, 191, 0.1); color: #5eead4; }
     .skin-dot { width: 13px; height: 13px; border-radius: 50%; }
 
-    /* Taverna del Fato (Gacha Roll) */
     .tavern-box {
       width: 100%; background: rgba(24, 16, 34, 0.85); border: 1px solid #6b21a8;
       border-radius: 6px; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center;
@@ -154,7 +152,6 @@
     .controls-mini { font-size: 0.74rem; color: #94a3b8; line-height: 1.5; }
     .controls-mini span { color: #5eead4; font-weight: 600; }
 
-    /* Colonna Destra: Arsenale a 10 Livelli */
     .armory-item {
       background: #080c11; border: 1px solid #27221e; border-radius: 6px; padding: 10px 12px;
       display: flex; justify-content: space-between; align-items: center;
@@ -168,7 +165,9 @@
     }
     .buy-upg-btn:disabled { opacity: 0.38; border-color: #475569; color: #94a3b8; cursor: not-allowed; }
 
-    /* HUD IN PARTITA */
+    /* =====================================================
+       HUD IN PARTITA & GESTIONE RELIQUIE SMART
+       ===================================================== */
     #hud { position: fixed; inset: 0; pointer-events: none; z-index: 10; display: none; }
     #leaderboard {
       position: absolute; top: 16px; right: 16px; width: 245px;
@@ -180,14 +179,36 @@
 
     #relics-panel {
       position: absolute; top: 175px; left: 16px;
-      display: flex; flex-direction: column; gap: 6px;
+      display: flex; flex-direction: column; gap: 6px; pointer-events: auto;
     }
     .relic-slot {
-      background: rgba(10, 15, 22, 0.88); border: 1px solid #3b3026;
-      border-radius: 6px; padding: 6px 10px; font-size: 0.78rem; color: #94a3b8;
-      display: flex; align-items: center; gap: 8px; min-width: 175px;
+      background: rgba(10, 15, 22, 0.9); border: 1px solid #3b3026;
+      border-radius: 6px; padding: 7px 11px; font-size: 0.78rem; color: #94a3b8;
+      display: flex; align-items: center; gap: 9px; min-width: 195px; cursor: pointer;
+      transition: 0.15s;
     }
     .relic-slot.filled { border-color: #eab308; color: #fef08a; box-shadow: 0 0 12px rgba(234, 179, 8, 0.15); }
+    .relic-stars { color: #facc15; font-size: 0.75rem; letter-spacing: 1px; }
+
+    #synergy-list {
+      display: flex; flex-direction: column; gap: 4px; margin-top: 4px;
+    }
+    .synergy-badge {
+      background: rgba(234, 179, 8, 0.14); border: 1px solid #ca8a04;
+      color: #fde047; font-size: 0.72rem; padding: 4px 8px; border-radius: 4px; font-weight: 600;
+    }
+
+    /* Popup Scelta Scarto Reliquia quando i 3 slot sono pieni */
+    #pending-relic-modal {
+      display: none; align-items: center; gap: 10px;
+      background: rgba(28, 18, 38, 0.96); border: 2px solid #facc15;
+      box-shadow: 0 0 25px rgba(250, 204, 21, 0.35);
+      padding: 8px 16px; border-radius: 8px; font-size: 0.8rem; color: #fef08a;
+    }
+    .swap-key-btn {
+      background: #422006; border: 1px solid #facc15; color: #fef08a;
+      padding: 4px 8px; border-radius: 4px; cursor: pointer; font-weight: 700; font-size: 0.74rem;
+    }
 
     #class-modal {
       position: absolute; top: 18%; left: 50%; transform: translateX(-50%);
@@ -207,15 +228,16 @@
     .class-card p { font-size: 0.75rem; color: #94a3b8; line-height: 1.4; }
 
     #rpg-bar {
-      position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
-      display: flex; flex-direction: column; align-items: center; gap: 10px; pointer-events: auto;
+      position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%);
+      display: flex; flex-direction: column; align-items: center; gap: 9px; pointer-events: auto;
     }
-    #action-pills { display: flex; gap: 12px; align-items: center; }
+    #action-pills { display: flex; gap: 10px; align-items: center; }
     .pill-box {
       display: flex; align-items: center; gap: 8px; cursor: pointer;
       background: rgba(15, 23, 42, 0.92); border: 1px solid #475569;
-      padding: 6px 15px; border-radius: 20px; font-size: 0.8rem; color: #e2e8f0;
+      padding: 6px 14px; border-radius: 20px; font-size: 0.79rem; color: #e2e8f0;
     }
+    #consumable-box { border-color: #f97316; color: #fed7aa; box-shadow: 0 0 12px rgba(249, 115, 22, 0.2); }
     #ability-box { display: none; border-color: #a855f7; color: #e9d5ff; box-shadow: 0 0 15px rgba(168, 85, 247, 0.3); }
     #repair-box { border-color: #22c55e; color: #bbf7d0; box-shadow: 0 0 12px rgba(34, 197, 94, 0.2); }
     #upgrades { display: flex; gap: 10px; }
@@ -226,7 +248,7 @@
     .upg-btn.available { border-color: #2dd4bf; color: #5eead4; box-shadow: 0 0 12px rgba(45, 212, 191, 0.25); }
     .upg-btn:hover.available { transform: translateY(-2px); background: #132a2e; }
     #xp-container {
-      width: 440px; height: 22px; background: #090d12; border: 1px solid #3d3126;
+      width: 460px; height: 22px; background: #090d12; border: 1px solid #3d3126;
       border-radius: 12px; overflow: hidden; position: relative;
     }
     #xp-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #0d9488, #2dd4bf); transition: width 0.2s; }
@@ -248,7 +270,7 @@
   </div>
 
   <!-- =====================================================
-       HOME PAGE - DASHBOARD ("IL PORTO MALEDETTO" v0.6)
+       HOME PAGE - DASHBOARD ("IL PORTO MALEDETTO" v0.7)
        ===================================================== -->
   <div id="overlay">
     <div class="dashboard-wrap">
@@ -256,7 +278,7 @@
       <div class="dash-header">
         <div class="brand-title">
           <h1>ABYSSAL SAILS</h1>
-          <span>IL PORTO MALEDETTO • HARDCORE PROGRESSION v0.6</span>
+          <span>IL PORTO MALEDETTO • RELIC FORGE & TACTICAL UPDATE v0.7</span>
         </div>
         <div class="captain-badges">
           <button class="sound-btn" id="soundToggleBtn" onclick="toggleSound()">🔊 Audio: ON</button>
@@ -271,7 +293,6 @@
 
       <div class="dash-grid">
 
-        <!-- COLONNA 1: TAGLIE MULTI-TIER & DIARIO -->
         <div class="dash-card">
           <h3>
             <span>📜 CONTRATTI DELLA GILDA</span>
@@ -284,11 +305,10 @@
             <div class="stat-box">Vascelli Affondati <b id="stat-kills">0</b></div>
             <div class="stat-box">Anime Raccolte <b id="stat-souls">0</b></div>
             <div class="stat-box">Leviatani Uccisi <b id="stat-bosses">0</b></div>
-            <div class="stat-box">Isole Conquistate <b id="stat-islands">0</b></div>
+            <div class="stat-box">Tesori Saccheggiati <b id="stat-islands">0</b></div>
           </div>
         </div>
 
-        <!-- COLONNA 2: COMANDO NAVE, SKIN & TAVERNA DEL FATO -->
         <div class="dash-card center-card">
           <h3><span>⚓ PONTE DI COMANDO</span></h3>
 
@@ -304,7 +324,6 @@
             <div class="skins-row" id="skins-container"></div>
           </div>
 
-          <!-- Taverna del Fato (Mystery Chest / Gacha) -->
           <div class="tavern-box">
             <div style="text-align:left;">
               <b style="font-size:0.82rem; color:#e9d5ff;">🎲 Il Dado di Caronte</b>
@@ -317,11 +336,11 @@
 
           <div class="controls-mini">
             <span>W/S</span> Vele • <span>A/D</span> Timone • <span>SPAZIO / CLICK SX</span> Bordate<br/>
-            <span>R</span> Ripara Scafo • <span>E / CLICK DX</span> Abilità • Conquista l'<span>Isola del Tesoro 🏝️</span>!
+            <span>Q</span> Usa Oggetto Tattico • <span>R</span> Ripara • <span>E / CLICK DX</span> Abilità<br/>
+            <span>Reliquie Doppie:</span> Si fondono fino a <span>★★★</span>! Usa <span>Z/X/C</span> per cambiare slot!
           </div>
         </div>
 
-        <!-- COLONNA 3: ARSENALE DEL PORTO (10 LIVELLI HARDCORE) -->
         <div class="dash-card">
           <h3>
             <span>🛠️ ARSENALE DEL PORTO</span>
@@ -341,10 +360,12 @@
       <div id="lb-list"></div>
     </div>
 
+    <!-- 3 Slot Reliquie con Stelle di Fusione + Sinergie Attive -->
     <div id="relics-panel">
-      <div class="relic-slot" id="relic-0">🏺 Slot Reliquia Vuoto</div>
-      <div class="relic-slot" id="relic-1">🏺 Slot Reliquia Vuoto</div>
-      <div class="relic-slot" id="relic-2">🏺 Slot Reliquia Vuoto</div>
+      <div class="relic-slot" id="relic-0" onclick="swapRelic(0)">🏺 [Z] Slot Reliquia Vuoto</div>
+      <div class="relic-slot" id="relic-1" onclick="swapRelic(1)">🏺 [X] Slot Reliquia Vuoto</div>
+      <div class="relic-slot" id="relic-2" onclick="swapRelic(2)">🏺 [C] Slot Reliquia Vuoto</div>
+      <div id="synergy-list"></div>
     </div>
 
     <div id="class-modal">
@@ -366,7 +387,18 @@
     </div>
 
     <div id="rpg-bar">
+      <!-- Popup di Scelta quando hai tutti e 3 gli slot Reliquia pieni -->
+      <div id="pending-relic-modal">
+        <span id="pending-relic-text">Trovata Reliquia! Sostituisci con:</span>
+        <button class="swap-key-btn" onclick="swapRelic(0)">[Z] Slot 1</button>
+        <button class="swap-key-btn" onclick="swapRelic(1)">[X] Slot 2</button>
+        <button class="swap-key-btn" onclick="swapRelic(2)">[C] Slot 3</button>
+      </div>
+
       <div id="action-pills">
+        <div id="consumable-box" class="pill-box" onclick="socket.emit('useConsumable')">
+          <span id="consumable-text">📦 [Q] Nessun Oggetto Tattico</span>
+        </div>
         <div id="repair-box" class="pill-box" onclick="triggerRepair()">
           <span id="repair-text">🛠️ [R] Ripara Scafo: Pronta</span>
         </div>
@@ -374,6 +406,7 @@
           <span id="ability-text">⚡ [E / Click DX] Abilità Pronta</span>
         </div>
       </div>
+
       <div id="upgrades">
         <div class="upg-btn" onclick="upgrade('hull')">[1] Scafo Corazzato</div>
         <div class="upg-btn" onclick="upgrade('cannons')">[2] Cannoni Spettrali</div>
@@ -398,7 +431,7 @@
     const SPRITE_ANGLE_OFFSET = 0;
 
     // =========================================================
-    // SINTETIZZATORE AUDIO PROCEDURALE WEBAUDIO (ZERO MP3)
+    // SINTETIZZATORE AUDIO WEBAUDIO
     // =========================================================
     let soundEnabled = true;
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -465,7 +498,7 @@
     };
 
     // =========================================================
-    // ECONOMIA HARDCORE v0.6 (PREZZI ALTI & QUEST A 3 TIER)
+    // ECONOMIA HARDCORE & PROFILO LOCALSTORAGE
     // =========================================================
     const SKINS_CATALOG = [
       { id: 'emerald', name: 'Smeraldo Abissale', color: '#2dd4bf', cost: 0 },
@@ -482,7 +515,6 @@
     ];
 
     function getArmoryUpgradeCost(baseCost, currentLv) {
-      // Scala esponenzialmente da 400 fino a ~4.500 al livello 10
       return Math.floor(baseCost * Math.pow(1.35, currentLv));
     }
 
@@ -490,7 +522,6 @@
       return new Date().toISOString().slice(0, 10);
     }
 
-    // Contratti a 3 Tier progressivi (Bronzo -> Argento -> Oro)
     function createDefaultQuests() {
       return [
         {
@@ -502,17 +533,16 @@
           tier: 0, progress: 0, targets: [8, 25, 60], rewards: [160, 350, 800]
         },
         {
-          id: 'q_relics', title: 'Raccogli Reliquie Maledette', type: 'relic',
+          id: 'q_relics', title: 'Raccogli o Fondi Reliquie', type: 'relic',
           tier: 0, progress: 0, targets: [5, 15, 35], rewards: [140, 300, 650]
         },
         {
-          id: 'q_boss', title: 'Abbatti il Leviatano o Conquista Isole', type: 'boss_or_island',
+          id: 'q_boss', title: 'Leviatano, Isole o Galeoni d\'Oro', type: 'boss_or_island',
           tier: 0, progress: 0, targets: [2, 6, 15], rewards: [220, 500, 1100]
         }
       ];
     }
 
-    // Nuova chiave v6 per azzerare l'inflazione della v5 e partire bilanciati
     let profile = JSON.parse(localStorage.getItem('abyssal_profile_v6')) || {
       name: '',
       doubloons: 50,
@@ -556,7 +586,6 @@
       document.getElementById('stat-bosses').innerText = profile.stats.bosses;
       document.getElementById('stat-islands').innerText = profile.stats.islands || 0;
 
-      // Render Contratti a 3 Gradi
       const tierNames = ['GRADO I • BRONZO', 'GRADO II • ARGENTO', 'GRADO III • ORO'];
       const qHtml = profile.quests.map(q => {
         const isAllDone = q.tier >= 3;
@@ -583,7 +612,6 @@
       }).join('');
       document.getElementById('quests-list').innerHTML = qHtml;
 
-      // Selettore Skin
       const sHtml = SKINS_CATALOG.map(sk => {
         const unlocked = profile.unlockedSkins.includes(sk.id);
         const active = profile.selectedSkin === sk.id;
@@ -599,10 +627,8 @@
       }).join('');
       document.getElementById('skins-container').innerHTML = sHtml;
 
-      // Bottone Dado di Caronte
       document.getElementById('rollFateBtn').disabled = profile.doubloons < 350;
 
-      // Arsenale del Porto (10 Livelli con costo esponenziale)
       const aHtml = ARMORY_CATALOG.map(item => {
         const lv = profile.armory[item.key] || 0;
         const cost = getArmoryUpgradeCost(item.baseCost, lv);
@@ -645,7 +671,6 @@
       }
     };
 
-    // Il Dado di Caronte (Taverna Gacha)
     window.rollCharonDice = function() {
       if (profile.doubloons < 350) return;
       profile.doubloons -= 350;
@@ -662,7 +687,6 @@
         profile.doubloons += 950;
         msgEl.innerHTML = `<span style="color:#fbbf24">🔥 JACKPOT ABISSALE! Hai vinto 950 🪙!</span>`;
       } else {
-        // Sblocca una skin non posseduta o 1200 dobloni
         const locked = SKINS_CATALOG.filter(s => !profile.unlockedSkins.includes(s.id));
         if (locked.length > 0) {
           const wonSkin = locked[0];
@@ -697,9 +721,12 @@
       bullets: [],
       souls: [],
       relics: [],
+      consumables: [],
+      seaMines: [],
       storm: { x: 2000, y: 2000, radius: 2500 },
       boss: { x: 2000, y: 2000, hp: 2800, maxHp: 2800, radius: 82, alive: true, enraged: false, angle: 0 },
       treasureIsland: { active: false, x: 1200, y: 1200, radius: 190, progress: 0 },
+      treasureGalleon: { active: false, x: 0, y: 0, hp: 1400, maxHp: 1400, angle: 0 },
       whirlpools: [],
       serverTime: Date.now()
     };
@@ -831,7 +858,11 @@
       if (k === 'd' || e.key === 'ArrowRight') inputs.right = true;
       if (e.code === 'Space') socket.emit('shoot');
       if (k === 'e' || k === 'shift') socket.emit('useAbility');
+      if (k === 'q') socket.emit('useConsumable');
       if (k === 'r') triggerRepair();
+      if (k === 'z') swapRelic(0);
+      if (k === 'x') swapRelic(1);
+      if (k === 'c') swapRelic(2);
       if (k === '1') upgrade('hull');
       if (k === '2') upgrade('cannons');
       if (k === '3') upgrade('sails');
@@ -858,6 +889,7 @@
     function triggerRepair() { socket.emit('startRepair'); }
     function upgrade(stat) { socket.emit('upgradeStat', stat); }
     function selectClass(c) { socket.emit('chooseClass', c); }
+    window.swapRelic = function(slotIdx) { socket.emit('swapRelicSlot', slotIdx); };
 
     socket.on('init', (data) => {
       myId = data.id;
@@ -870,7 +902,6 @@
       updateHUD();
     });
 
-    // Avanzamento Contratti a 3 Gradi
     socket.on('questEvent', ({ type, amount, doubloons }) => {
       if (doubloons) profile.doubloons += doubloons;
       if (type === 'soul') profile.stats.souls += amount;
@@ -1017,18 +1048,51 @@
           btn.classList.toggle('available', me.skillPoints > 0);
         });
 
+        // Aggiorna i 3 Slot Reliquie con Stelle di Grado (★, ★★, ★★★)
+        const keyLabels = ['Z', 'X', 'C'];
         for (let i = 0; i < 3; i++) {
           const slotEl = document.getElementById(`relic-${i}`);
           const rel = me.inventory && me.inventory[i];
           if (rel) {
+            const stars = '★'.repeat(rel.level || 1) + '☆'.repeat(3 - (rel.level || 1));
             slotEl.className = 'relic-slot filled';
             slotEl.style.borderColor = rel.color;
-            slotEl.innerHTML = `<span>${rel.icon}</span> <div><b>${rel.name}</b><br/><span style="font-size:0.7rem;color:#cbd5e1">${rel.desc}</span></div>`;
+            slotEl.innerHTML = `
+              <span style="font-size:1.15rem">${rel.icon}</span>
+              <div>
+                <b>[${keyLabels[i]}] ${rel.name}</b> <span class="relic-stars">${stars}</span><br/>
+                <span style="font-size:0.7rem;color:#cbd5e1">${rel.desc}</span>
+              </div>
+            `;
           } else {
             slotEl.className = 'relic-slot';
             slotEl.style.borderColor = '#3b3026';
-            slotEl.innerText = '🏺 Slot Reliquia Vuoto';
+            slotEl.innerText = `🏺 [${keyLabels[i]}] Slot Reliquia Vuoto`;
           }
+        }
+
+        // Mostra Sinergie di Set attive
+        const synEl = document.getElementById('synergy-list');
+        synEl.innerHTML = (me.activeSynergies || [])
+          .map(s => `<div class="synergy-badge">${s}</div>`)
+          .join('');
+
+        // Mostra Popup Scambio Reliquia se i 3 slot sono pieni
+        const pendModal = document.getElementById('pending-relic-modal');
+        if (me.pendingRelic && gameState.serverTime < me.pendingRelicUntil) {
+          pendModal.style.display = 'flex';
+          document.getElementById('pending-relic-text').innerHTML =
+            `Trovata <b>${me.pendingRelic.icon} ${me.pendingRelic.name}</b>! Sostituisci con:`;
+        } else {
+          pendModal.style.display = 'none';
+        }
+
+        // Slot Consumabile Tattico [Q]
+        const consText = document.getElementById('consumable-text');
+        if (me.consumable) {
+          consText.innerHTML = `${me.consumable.icon} <b>[Q] ${me.consumable.name}</b>`;
+        } else {
+          consText.innerText = '📦 [Q] Nessun Oggetto Tattico';
         }
 
         const repElapsed = gameState.serverTime - me.lastRepair;
@@ -1103,7 +1167,6 @@
       ctx.restore();
     }
 
-    // Disegna Vortici Maelstrom
     function drawWhirlpools() {
       (gameState.whirlpools || []).forEach(wp => {
         ctx.save();
@@ -1126,7 +1189,6 @@
       });
     }
 
-    // Disegna Isola del Tesoro Contendibile (King of the Hill)
     function drawTreasureIsland() {
       const ti = gameState.treasureIsland;
       if (!ti || !ti.active) return;
@@ -1134,7 +1196,6 @@
       ctx.save();
       ctx.translate(ti.x, ti.y);
 
-      // Anello di Conquista
       ctx.strokeStyle = ti.contested ? '#ef4444' : '#facc15';
       ctx.fillStyle = ti.contested ? 'rgba(239, 68, 68, 0.08)' : 'rgba(250, 204, 21, 0.08)';
       ctx.lineWidth = 3.5;
@@ -1143,7 +1204,6 @@
       ctx.fill();
       ctx.stroke();
 
-      // Isola Sabbiosa Maledetta al centro
       ctx.fillStyle = '#422006';
       ctx.strokeStyle = '#ca8a04';
       ctx.lineWidth = 3;
@@ -1152,13 +1212,11 @@
       ctx.fill();
       ctx.stroke();
 
-      // Forziere Dorato al centro
       ctx.fillStyle = '#facc15';
       ctx.fillRect(-14, -10, 28, 20);
       ctx.strokeStyle = '#713f12';
       ctx.strokeRect(-14, -10, 28, 20);
 
-      // Testo & Barra Conquista
       ctx.font = '800 13px Cinzel';
       ctx.textAlign = 'center';
       ctx.fillStyle = ti.contested ? '#fca5a5' : '#fef08a';
@@ -1174,6 +1232,47 @@
       ctx.fillStyle = ti.contested ? '#ef4444' : '#facc15';
       ctx.fillRect(-bw / 2, -62, bw * (ti.progress / 100), 8);
 
+      ctx.restore();
+    }
+
+    // Disegna il Galeone del Tesoro Imperiale
+    function drawTreasureGalleon() {
+      const tg = gameState.treasureGalleon;
+      if (!tg || !tg.active) return;
+
+      ctx.save();
+      ctx.translate(tg.x, tg.y);
+      ctx.rotate(tg.angle);
+
+      ctx.shadowBlur = 22;
+      ctx.shadowColor = '#facc15';
+      ctx.fillStyle = '#422006';
+      ctx.strokeStyle = '#fde047';
+      ctx.lineWidth = 3.5;
+      ctx.beginPath();
+      ctx.moveTo(54, 0);
+      ctx.quadraticCurveTo(15, 32, -48, 24);
+      ctx.lineTo(-54, 0);
+      ctx.lineTo(-48, -24);
+      ctx.quadraticCurveTo(15, -32, 54, 0);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      ctx.restore();
+
+      ctx.save();
+      ctx.font = '800 13px Cinzel';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#fde047';
+      ctx.fillText('🚢 GALEONE DEL TESORO IMPERIALE', tg.x, tg.y - 62);
+
+      const bw = 110;
+      ctx.fillStyle = 'rgba(0,0,0,0.8)';
+      ctx.fillRect(tg.x - bw / 2, tg.y - 52, bw, 8);
+      ctx.fillStyle = '#facc15';
+      ctx.fillRect(tg.x - bw / 2, tg.y - 52, bw * Math.max(0, tg.hp / tg.maxHp), 8);
       ctx.restore();
     }
 
@@ -1208,8 +1307,10 @@
       });
     }
 
-    function drawRelics() {
+    function drawRelicsAndConsumables() {
       const t = Date.now() * 0.005;
+
+      // Reliquie Maledette
       (gameState.relics || []).forEach(rel => {
         ctx.save();
         ctx.translate(rel.x, rel.y);
@@ -1236,6 +1337,42 @@
         ctx.font = '600 11px Inter';
         ctx.fillStyle = rel.color;
         ctx.fillText(rel.name, 0, -26);
+        ctx.restore();
+      });
+
+      // Casse Tattiche Consumabili [Q]
+      (gameState.consumables || []).forEach(c => {
+        ctx.save();
+        ctx.translate(c.x, c.y);
+        ctx.fillStyle = '#1c1917';
+        ctx.strokeStyle = c.color;
+        ctx.lineWidth = 2;
+        ctx.fillRect(-13, -13, 26, 26);
+        ctx.strokeRect(-13, -13, 26, 26);
+
+        ctx.font = '15px Inter';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(c.icon, 0, 1);
+        ctx.restore();
+      });
+
+      // Mine Abissali piazzate in acqua
+      (gameState.seaMines || []).forEach(m => {
+        ctx.save();
+        ctx.translate(m.x, m.y);
+        ctx.fillStyle = '#18181b';
+        ctx.strokeStyle = '#ef4444';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.arc(0, 0, 13, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#ef4444';
+        ctx.beginPath();
+        ctx.arc(0, 0, 4 + Math.sin(t * 3) * 2, 0, Math.PI * 2);
+        ctx.fill();
         ctx.restore();
       });
     }
@@ -1415,7 +1552,7 @@
       ctx.font = '600 12px Inter';
       ctx.textAlign = 'center';
       const classTag = p.shipClass ? ` • ${p.shipClass.toUpperCase()}` : '';
-      const relicIcons = (p.inventory || []).map(r => r.icon).join('');
+      const relicIcons = (p.inventory || []).map(r => `${r.icon}${r.level > 1 ? r.level : ''}`).join(' ');
       const wantedCrown = p.isMostWanted ? '👑 [TAGLIA +80🪙] ' : '';
       ctx.fillStyle = p.isMostWanted ? '#facc15' : (p.id === myId ? skinColor : (p.isBot ? '#c084fc' : '#e2d9c8'));
       ctx.fillText(`${wantedCrown}${p.name} [Lv.${p.level}${classTag}] ${relicIcons}`, p.x, p.y - 54);
@@ -1454,6 +1591,7 @@
 
       drawWhirlpools();
       drawTreasureIsland();
+      drawTreasureGalleon();
 
       for (let i = wakes.length - 1; i >= 0; i--) {
         const w = wakes[i];
@@ -1481,7 +1619,7 @@
         ctx.restore();
       });
 
-      drawRelics();
+      drawRelicsAndConsumables();
       drawRocks();
       drawBoss();
       Object.values(gameState.players).forEach(drawShip);
@@ -1560,7 +1698,6 @@
       ctx.arc((st.x / mapSize) * size, (st.y / mapSize) * size, (st.radius / mapSize) * size, 0, Math.PI * 2);
       ctx.stroke();
 
-      // Isola del Tesoro sulla Minimappa
       if (gameState.treasureIsland && gameState.treasureIsland.active) {
         ctx.strokeStyle = '#facc15';
         ctx.lineWidth = 1.5;
@@ -1573,6 +1710,17 @@
           Math.PI * 2
         );
         ctx.stroke();
+      }
+
+      // Icona Galeone del Tesoro Imperiale sulla Minimappa
+      if (gameState.treasureGalleon && gameState.treasureGalleon.active) {
+        ctx.fillStyle = '#fde047';
+        ctx.fillRect(
+          (gameState.treasureGalleon.x / mapSize) * size - 3,
+          (gameState.treasureGalleon.y / mapSize) * size - 3,
+          6,
+          6
+        );
       }
 
       if (gameState.boss && gameState.boss.alive) {
