@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Abyssal Sails .io - Dark Fantasy Pirate Royale</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Inter:wght@400;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Inter:wght@400;500;600;700&display=swap');
 
     * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
     body, html { width: 100%; height: 100%; overflow: hidden; background: #030609; font-family: 'Inter', sans-serif; color: #e2d9c8; }
@@ -18,49 +18,149 @@
 
     /* Banner Globale Boss Warning */
     #world-banner {
-      position: fixed; top: 28px; left: 50%; transform: translateX(-50%) translateY(-120px);
-      background: linear-gradient(90deg, transparent, rgba(15, 10, 28, 0.95) 20%, rgba(15, 10, 28, 0.95) 80%, transparent);
+      position: fixed; top: 24px; left: 50%; transform: translateX(-50%) translateY(-130px);
+      background: linear-gradient(90deg, transparent, rgba(15, 10, 28, 0.96) 20%, rgba(15, 10, 28, 0.96) 80%, transparent);
       border-top: 2px solid #c084fc; border-bottom: 2px solid #c084fc;
       padding: 14px 48px; text-align: center; z-index: 15; pointer-events: none;
       transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
       box-shadow: 0 10px 35px rgba(0, 0, 0, 0.85);
     }
     #world-banner.show { transform: translateX(-50%) translateY(0); }
-    #banner-title { font-family: 'Cinzel', serif; font-weight: 800; font-size: 1.25rem; color: #e9d5ff; letter-spacing: 1.5px; }
-    #banner-sub { font-size: 0.84rem; color: #cbd5e1; margin-top: 4px; }
+    #banner-title { font-family: 'Cinzel', serif; font-weight: 800; font-size: 1.2rem; color: #e9d5ff; letter-spacing: 1.5px; }
+    #banner-sub { font-size: 0.82rem; color: #cbd5e1; margin-top: 4px; }
 
+    /* Toast Completamento Quest in Partita */
+    #quest-toast {
+      position: fixed; bottom: 130px; right: 20px; transform: translateX(350px);
+      background: rgba(14, 22, 29, 0.95); border: 1px solid #fbbf24;
+      box-shadow: 0 0 25px rgba(251, 191, 36, 0.3); padding: 12px 18px; border-radius: 8px;
+      z-index: 25; transition: transform 0.35s ease; pointer-events: none;
+    }
+    #quest-toast.show { transform: translateX(0); }
+    #quest-toast h4 { font-family: 'Cinzel', serif; color: #fbbf24; font-size: 0.9rem; }
+    #quest-toast p { font-size: 0.78rem; color: #e2e8f0; margin-top: 2px; }
+
+    /* =====================================================
+       HOME PAGE DASHBOARD ("IL PORTO MALEDETTO")
+       ===================================================== */
     #overlay {
       position: fixed; inset: 0;
-      background: radial-gradient(circle at center, rgba(12, 22, 28, 0.85) 0%, rgba(3, 5, 8, 0.96) 100%);
+      background: radial-gradient(circle at center, rgba(10, 20, 28, 0.82) 0%, rgba(3, 5, 8, 0.96) 100%);
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      z-index: 20; backdrop-filter: blur(6px);
+      z-index: 20; backdrop-filter: blur(7px); padding: 20px; overflow-y: auto;
     }
-    .panel {
-      background: rgba(14, 18, 24, 0.95);
-      border: 1px solid #3d2f24;
-      box-shadow: 0 0 50px rgba(0, 0, 0, 0.95), inset 0 0 25px rgba(45, 212, 191, 0.06);
-      padding: 36px 42px; border-radius: 8px; text-align: center; max-width: 480px; width: 90%;
+    .dashboard-wrap {
+      max-width: 1120px; width: 100%;
+      display: flex; flex-direction: column; gap: 16px;
     }
-    h1 {
-      font-family: 'Cinzel', serif; font-size: 2.4rem; color: #2dd4bf;
-      text-shadow: 0 0 18px rgba(45, 212, 191, 0.45); letter-spacing: 2px; margin-bottom: 8px;
+    .dash-header {
+      display: flex; justify-content: space-between; align-items: center;
+      background: rgba(12, 16, 22, 0.92); border: 1px solid #3d2f24;
+      padding: 14px 24px; border-radius: 8px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
     }
-    .subtitle { color: #8c7f70; font-size: 0.92rem; margin-bottom: 24px; }
-    input {
-      width: 100%; padding: 12px 16px; background: #090d12; border: 1px solid #47382b;
-      color: #f3ede2; font-size: 1rem; border-radius: 4px; margin-bottom: 16px; outline: none; text-align: center;
+    .brand-title h1 {
+      font-family: 'Cinzel', serif; font-size: 1.85rem; color: #2dd4bf;
+      text-shadow: 0 0 16px rgba(45, 212, 191, 0.4); letter-spacing: 2px;
     }
-    input:focus { border-color: #2dd4bf; box-shadow: 0 0 10px rgba(45, 212, 191, 0.25); }
-    button {
-      width: 100%; padding: 13px; font-family: 'Cinzel', serif; font-weight: 800; font-size: 1.05rem;
-      background: linear-gradient(180deg, #134e4a 0%, #0f292a 100%);
-      color: #5eead4; border: 1px solid #2dd4bf; border-radius: 4px; cursor: pointer;
-      transition: all 0.2s; letter-spacing: 1px;
+    .brand-title span { font-size: 0.8rem; color: #94a3b8; }
+    .captain-badges { display: flex; gap: 18px; align-items: center; }
+    .badge-pill {
+      background: #090d13; border: 1px solid #47382b; padding: 8px 16px;
+      border-radius: 6px; font-size: 0.88rem; display: flex; align-items: center; gap: 8px;
     }
-    button:hover { background: #115e59; box-shadow: 0 0 20px rgba(45, 212, 191, 0.4); }
-    .controls-hint { margin-top: 22px; font-size: 0.82rem; color: #94a3b8; line-height: 1.65; }
-    .controls-hint span { color: #5eead4; font-weight: 600; }
+    .badge-pill b { color: #fbbf24; font-size: 1rem; }
 
+    /* Griglia a 3 Colonne */
+    .dash-grid {
+      display: grid; grid-template-columns: 1fr 1.15fr 1fr; gap: 16px;
+    }
+    @media (max-width: 960px) {
+      .dash-grid { grid-template-columns: 1fr; }
+    }
+    .dash-card {
+      background: rgba(13, 17, 24, 0.93); border: 1px solid #362b22;
+      border-radius: 8px; padding: 20px; display: flex; flex-direction: column; gap: 14px;
+      box-shadow: 0 0 35px rgba(0, 0, 0, 0.8), inset 0 0 20px rgba(45, 212, 191, 0.03);
+    }
+    .dash-card h3 {
+      font-family: 'Cinzel', serif; font-size: 1.05rem; color: #5eead4;
+      border-bottom: 1px solid #2b231d; padding-bottom: 8px; letter-spacing: 1px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+
+    /* Colonna Sinistra: Taglie Giornaliere & Diario */
+    .quest-item {
+      background: #080c11; border: 1px solid #27221e; border-radius: 6px; padding: 10px 12px;
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .quest-item.done { border-color: #eab308; background: rgba(234, 179, 8, 0.06); }
+    .quest-top { display: flex; justify-content: space-between; font-size: 0.82rem; font-weight: 600; }
+    .quest-reward { color: #fbbf24; }
+    .quest-bar-bg { width: 100%; height: 7px; background: #1e293b; border-radius: 4px; overflow: hidden; }
+    .quest-bar-fill { height: 100%; background: linear-gradient(90deg, #0d9488, #2dd4bf); width: 0%; transition: 0.25s; }
+    .claim-btn {
+      padding: 5px 10px; font-size: 0.74rem; font-family: 'Cinzel', serif; font-weight: 700;
+      background: #ca8a04; color: #fff; border: none; border-radius: 4px; cursor: pointer;
+    }
+    .stats-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: auto;
+    }
+    .stat-box {
+      background: #080c11; border: 1px solid #231f1c; padding: 8px 10px; border-radius: 5px;
+      font-size: 0.76rem; color: #94a3b8;
+    }
+    .stat-box b { display: block; font-size: 1rem; color: #e2e8f0; margin-top: 2px; }
+
+    /* Colonna Centrale: Salpa & Selettore Skin */
+    .center-card { align-items: center; text-align: center; justify-content: space-between; }
+    #death-report {
+      width: 100%; background: rgba(127, 29, 29, 0.22); border: 1px solid #dc2626;
+      color: #fca5a5; padding: 10px; border-radius: 6px; font-size: 0.82rem; display: none;
+    }
+    input#playerName {
+      width: 100%; padding: 12px 16px; background: #080c11; border: 1px solid #47382b;
+      color: #f3ede2; font-size: 1.02rem; border-radius: 5px; outline: none; text-align: center;
+    }
+    input#playerName:focus { border-color: #2dd4bf; box-shadow: 0 0 12px rgba(45, 212, 191, 0.25); }
+
+    .skins-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; width: 100%; }
+    .skin-btn {
+      background: #080c11; border: 1px solid #2e2620; padding: 9px; border-radius: 6px;
+      cursor: pointer; font-size: 0.78rem; color: #cbd5e1; transition: 0.15s;
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+    }
+    .skin-btn.active { border-color: #2dd4bf; background: rgba(45, 212, 191, 0.1); color: #5eead4; }
+    .skin-dot { width: 14px; height: 14px; border-radius: 50%; }
+
+    #playBtn {
+      width: 100%; padding: 15px; font-family: 'Cinzel', serif; font-weight: 800; font-size: 1.15rem;
+      background: linear-gradient(180deg, #0f766e 0%, #115e59 100%);
+      color: #5eead4; border: 1px solid #2dd4bf; border-radius: 6px; cursor: pointer;
+      transition: all 0.2s; letter-spacing: 1.5px; box-shadow: 0 0 25px rgba(45, 212, 191, 0.25);
+    }
+    #playBtn:hover { background: #0d9488; color: #fff; box-shadow: 0 0 30px rgba(45, 212, 191, 0.5); }
+
+    .controls-mini { font-size: 0.76rem; color: #94a3b8; line-height: 1.55; }
+    .controls-mini span { color: #5eead4; font-weight: 600; }
+
+    /* Colonna Destra: Arsenale Permanente */
+    .armory-item {
+      background: #080c11; border: 1px solid #27221e; border-radius: 6px; padding: 10px 12px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .armory-info h4 { font-size: 0.85rem; color: #e2d9c8; }
+    .armory-info p { font-size: 0.73rem; color: #94a3b8; margin-top: 2px; }
+    .buy-upg-btn {
+      background: #132a2e; border: 1px solid #2dd4bf; color: #5eead4;
+      padding: 7px 12px; border-radius: 5px; font-size: 0.76rem; font-weight: 600; cursor: pointer;
+      min-width: 92px; text-align: center;
+    }
+    .buy-upg-btn:disabled { opacity: 0.4; border-color: #475569; color: #94a3b8; cursor: not-allowed; }
+
+    /* =====================================================
+       HUD IN PARTITA
+       ===================================================== */
     #hud { position: fixed; inset: 0; pointer-events: none; z-index: 10; display: none; }
     #leaderboard {
       position: absolute; top: 16px; right: 16px; width: 240px;
@@ -70,7 +170,6 @@
     .lb-row { display: flex; justify-content: space-between; font-size: 0.82rem; margin: 4px 0; color: #94a3b8; }
     .lb-row.me { color: #2dd4bf; font-weight: 600; }
 
-    /* Inventario Reliquie (Sotto la Minimappa a sinistra) */
     #relics-panel {
       position: absolute; top: 175px; left: 16px;
       display: flex; flex-direction: column; gap: 6px;
@@ -82,7 +181,6 @@
     }
     .relic-slot.filled { border-color: #eab308; color: #fef08a; box-shadow: 0 0 12px rgba(234, 179, 8, 0.15); }
 
-    /* Pannello Evoluzione Classe al Livello 4 */
     #class-modal {
       position: absolute; top: 18%; left: 50%; transform: translateX(-50%);
       display: none; flex-direction: column; align-items: center; gap: 12px;
@@ -100,7 +198,6 @@
     .class-card h4 { font-family: 'Cinzel', serif; color: #f3ede2; font-size: 0.95rem; margin-bottom: 6px; }
     .class-card p { font-size: 0.75rem; color: #94a3b8; line-height: 1.4; }
 
-    /* Barra RPG, Abilità [E] e Riparazione [R] */
     #rpg-bar {
       position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
       display: flex; flex-direction: column; align-items: center; gap: 10px; pointer-events: auto;
@@ -110,7 +207,6 @@
       display: flex; align-items: center; gap: 8px; cursor: pointer;
       background: rgba(15, 23, 42, 0.92); border: 1px solid #475569;
       padding: 6px 15px; border-radius: 20px; font-size: 0.8rem; color: #e2e8f0;
-      transition: 0.15s;
     }
     #ability-box { display: none; border-color: #a855f7; color: #e9d5ff; box-shadow: 0 0 15px rgba(168, 85, 247, 0.3); }
     #repair-box { border-color: #22c55e; color: #bbf7d0; box-shadow: 0 0 12px rgba(34, 197, 94, 0.2); }
@@ -133,41 +229,108 @@
 
   <div id="vignette"></div>
 
-  <!-- Banner Cinematografico Eventi Boss -->
   <div id="world-banner">
     <div id="banner-title">🦑 IL LEVIATANO ABISSALE È EMERSO!</div>
     <div id="banner-sub">Dirigiti al centro della mappa per ottenere Reliquie Mitiche</div>
   </div>
 
+  <div id="quest-toast">
+    <h4 id="toast-title">📜 TAGLIA COMPLETATA!</h4>
+    <p id="toast-desc">Hai riscosso +150 Dobloni Abissali</p>
+  </div>
+
+  <!-- =====================================================
+       HOME PAGE - DASHBOARD ("IL PORTO MALEDETTO")
+       ===================================================== -->
   <div id="overlay">
-    <div class="panel">
-      <h1>ABYSSAL SAILS</h1>
-      <p class="subtitle">Dark Fantasy Naval RPG Battle Royale</p>
-      <p id="death-stats" style="color:#f87171; font-size:0.9rem; margin-bottom:14px; display:none;"></p>
-      <input type="text" id="playerName" placeholder="Nome del tuo Vascello..." maxlength="18" />
-      <button id="playBtn">SALPA NELL'ABISSO</button>
-      <div class="controls-hint">
-        <span>W / S</span> Vele &nbsp;|&nbsp; <span>A / D</span> Timone &nbsp;|&nbsp; <span>SPAZIO / CLICK SX</span> Bordate<br/>
-        <span>R</span> Ripara lo Scafo (4s, si interrompe se combatti)<br/>
-        <span>E / CLICK DX</span> Abilità di Classe &nbsp;|&nbsp; Raccogli <span>Reliquie 🏺</span> dai nemici e dal Boss!
+    <div class="dashboard-wrap">
+
+      <!-- Top Bar: Titolo, Grado di Infamia e Forziere Dobloni -->
+      <div class="dash-header">
+        <div class="brand-title">
+          <h1>ABYSSAL SAILS</h1>
+          <span>IL PORTO MALEDETTO • NAVAL RPG BATTLE ROYALE</span>
+        </div>
+        <div class="captain-badges">
+          <div class="badge-pill">
+            🏴‍☠️ Grado: <b id="ui-rank" style="color:#5eead4">Mozzo Dannato</b>
+          </div>
+          <div class="badge-pill">
+            🪙 Dobloni Abissali: <b id="ui-doubloons">0</b>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3 Colonne Principali -->
+      <div class="dash-grid">
+
+        <!-- COLONNA 1: TAGLIE GIORNALIERE & STATISTICHE -->
+        <div class="dash-card">
+          <h3>
+            <span>📜 TAGLIE DEL GIORNO</span>
+            <span style="font-size:0.72rem; color:#94a3b8; font-family:Inter;">Reset ogni 24h</span>
+          </h3>
+          <div id="quests-list" style="display:flex; flex-direction:column; gap:10px;"></div>
+
+          <h3 style="margin-top:6px;"><span>💀 DIARIO DEL CAPITANO</span></h3>
+          <div class="stats-grid">
+            <div class="stat-box">Vascelli Affondati <b id="stat-kills">0</b></div>
+            <div class="stat-box">Anime Raccolte <b id="stat-souls">0</b></div>
+            <div class="stat-box">Leviatani Uccisi <b id="stat-bosses">0</b></div>
+            <div class="stat-box">Livello Max <b id="stat-maxlv">1</b></div>
+          </div>
+        </div>
+
+        <!-- COLONNA 2: COMANDO NAVE, SKIN & SALPA -->
+        <div class="dash-card center-card">
+          <h3><span>⚓ PONTE DI COMANDO</span></h3>
+
+          <div id="death-report"></div>
+
+          <div style="width:100%;">
+            <label style="font-size:0.76rem; color:#94a3b8; display:block; margin-bottom:6px;">NOME DEL TUO VASCELLO</label>
+            <input type="text" id="playerName" placeholder="Es. Olandese Volante..." maxlength="18" />
+          </div>
+
+          <div style="width:100%;">
+            <label style="font-size:0.76rem; color:#94a3b8; display:block; margin-bottom:8px;">LIVREA & AURA SPETTRALE</label>
+            <div class="skins-row" id="skins-container"></div>
+          </div>
+
+          <button id="playBtn">SALPA NELL'ABISSO</button>
+
+          <div class="controls-mini">
+            <span>W/S</span> Vele • <span>A/D</span> Timone • <span>SPAZIO / CLICK SX</span> Bordate<br/>
+            <span>R</span> Ripara Scafo (4s) • <span>E / CLICK DX</span> Abilità di Classe (Liv.4)
+          </div>
+        </div>
+
+        <!-- COLONNA 3: ARSENALE DEL PORTO (UPGRADE PERMANENTI) -->
+        <div class="dash-card">
+          <h3>
+            <span>🛠️ ARSENALE DEL PORTO</span>
+            <span style="font-size:0.72rem; color:#fbbf24; font-family:Inter;">Bonus Permanenti</span>
+          </h3>
+          <div id="armory-list" style="display:flex; flex-direction:column; gap:10px;"></div>
+        </div>
+
       </div>
     </div>
   </div>
 
+  <!-- HUD IN PARTITA -->
   <div id="hud">
     <div id="leaderboard">
       <h3>TERRORE DEI MARI</h3>
       <div id="lb-list"></div>
     </div>
 
-    <!-- 3 Slot Reliquie Equipaggiate -->
     <div id="relics-panel">
       <div class="relic-slot" id="relic-0">🏺 Slot Reliquia Vuoto</div>
       <div class="relic-slot" id="relic-1">🏺 Slot Reliquia Vuoto</div>
       <div class="relic-slot" id="relic-2">🏺 Slot Reliquia Vuoto</div>
     </div>
 
-    <!-- Scelta Evoluzione al Livello 4 -->
     <div id="class-modal">
       <h2>SCEGLI L'EVOLUZIONE DEL VASCELLO (LIVELLO 4)</h2>
       <div class="class-cards">
@@ -218,6 +381,181 @@
 
     const SPRITE_ANGLE_OFFSET = 0;
 
+    // =========================================================
+    // SISTEMA PROFILO, QUEST GIORNALIERE E ARSENALE (LOCALSTORAGE)
+    // =========================================================
+    const SKINS_CATALOG = [
+      { id: 'emerald', name: 'Smeraldo Abissale', color: '#2dd4bf', cost: 0 },
+      { id: 'crimson', name: 'Maledizione Cremisi', color: '#f43f5e', cost: 250 },
+      { id: 'gold', name: 'Oro del Re Pirata', color: '#facc15', cost: 500 },
+      { id: 'void', name: 'Vuoto Cosmico', color: '#c084fc', cost: 800 }
+    ];
+
+    const ARMORY_CATALOG = [
+      { key: 'hullLv', name: 'Carena Rinforzata', desc: '+12 HP Massimi iniziali per livello', baseCost: 120 },
+      { key: 'cannonLv', name: 'Polvere Nera Raffinata', desc: '+1.5 Danno Bordate iniziale per livello', baseCost: 150 },
+      { key: 'sailLv', name: 'Vele di Seta Stregata', desc: '+Velocità e Timone iniziali per livello', baseCost: 130 },
+      { key: 'soulLv', name: 'Patto delle Anime', desc: 'Inizi ogni partita con +15 XP bonus per livello', baseCost: 140 }
+    ];
+
+    function getTodayString() {
+      return new Date().toISOString().slice(0, 10);
+    }
+
+    function createDefaultQuests() {
+      return [
+        { id: 'q_souls', title: 'Raccogli 15 Anime Abissali', type: 'soul', progress: 0, target: 15, reward: 150, claimed: false },
+        { id: 'q_kills', title: 'Affonda 3 Vascelli Nemici', type: 'kill', progress: 0, target: 3, reward: 250, claimed: false },
+        { id: 'q_relics', title: 'Raccogli 2 Reliquie Maledette', type: 'relic', progress: 0, target: 2, reward: 200, claimed: false },
+        { id: 'q_boss', title: 'Abbatti il Leviatano Abissale', type: 'boss', progress: 0, target: 1, reward: 500, claimed: false }
+      ];
+    }
+
+    let profile = JSON.parse(localStorage.getItem('abyssal_profile_v5')) || {
+      name: '',
+      doubloons: 100, // Bonus di benvenuto
+      unlockedSkins: ['emerald'],
+      selectedSkin: 'emerald',
+      armory: { hullLv: 0, cannonLv: 0, sailLv: 0, soulLv: 0 },
+      stats: { kills: 0, souls: 0, bosses: 0, maxLevel: 1 },
+      lastQuestDate: getTodayString(),
+      quests: createDefaultQuests()
+    };
+
+    // Reset automatico delle Taglie se è cambiato il giorno
+    if (profile.lastQuestDate !== getTodayString()) {
+      profile.lastQuestDate = getTodayString();
+      profile.quests = createDefaultQuests();
+    }
+
+    function saveProfile() {
+      localStorage.setItem('abyssal_profile_v5', JSON.stringify(profile));
+      renderDashboardUI();
+    }
+
+    function getCaptainRank() {
+      const score = profile.stats.kills * 10 + profile.stats.bosses * 50 + profile.stats.souls;
+      if (score >= 500) return 'Signore degli Abissi';
+      if (score >= 220) return 'Terrore del Leviatano';
+      if (score >= 90) return 'Capitano Spettrale';
+      if (score >= 30) return 'Predone Maledetto';
+      return 'Mozzo Dannato';
+    }
+
+    function renderDashboardUI() {
+      document.getElementById('ui-doubloons').innerText = profile.doubloons;
+      document.getElementById('ui-rank').innerText = getCaptainRank();
+
+      const nameInput = document.getElementById('playerName');
+      if (!nameInput.value && profile.name) nameInput.value = profile.name;
+
+      // Statistiche Carriera
+      document.getElementById('stat-kills').innerText = profile.stats.kills;
+      document.getElementById('stat-souls').innerText = profile.stats.souls;
+      document.getElementById('stat-bosses').innerText = profile.stats.bosses;
+      document.getElementById('stat-maxlv').innerText = profile.stats.maxLevel;
+
+      // Lista Taglie Giornaliere
+      const qHtml = profile.quests.map(q => {
+        const pct = Math.min(100, Math.floor((q.progress / q.target) * 100));
+        const isReady = q.progress >= q.target && !q.claimed;
+        return `
+          <div class="quest-item ${q.claimed ? 'done' : ''}">
+            <div class="quest-top">
+              <span>${q.title} (${Math.min(q.progress, q.target)}/${q.target})</span>
+              <span class="quest-reward">+${q.reward} 🪙</span>
+            </div>
+            <div class="quest-bar-bg">
+              <div class="quest-bar-fill" style="width:${pct}%"></div>
+            </div>
+            ${isReady ? `<button class="claim-btn" onclick="claimQuest('${q.id}')">RISCUOTI RICOMPENSA</button>` : ''}
+            ${q.claimed ? `<span style="font-size:0.72rem;color:#eab308;">✔ Taglia Completata</span>` : ''}
+          </div>
+        `;
+      }).join('');
+      document.getElementById('quests-list').innerHTML = qHtml;
+
+      // Selettore Skin
+      const sHtml = SKINS_CATALOG.map(sk => {
+        const unlocked = profile.unlockedSkins.includes(sk.id);
+        const active = profile.selectedSkin === sk.id;
+        return `
+          <div class="skin-btn ${active ? 'active' : ''}" onclick="selectOrBuySkin('${sk.id}')">
+            <div class="skin-dot" style="background:${sk.color}; box-shadow:0 0 10px ${sk.color}"></div>
+            <b>${sk.name}</b>
+            <span style="font-size:0.7rem; color:${unlocked ? '#5eead4' : '#fbbf24'}">
+              ${active ? 'Equipaggiata' : (unlocked ? 'Usa Skin' : `Sblocca: ${sk.cost} 🪙`)}
+            </span>
+          </div>
+        `;
+      }).join('');
+      document.getElementById('skins-container').innerHTML = sHtml;
+
+      // Arsenale del Porto
+      const aHtml = ARMORY_CATALOG.map(item => {
+        const lv = profile.armory[item.key] || 0;
+        const cost = item.baseCost + lv * 110;
+        const isMax = lv >= 5;
+        const canAfford = profile.doubloons >= cost && !isMax;
+        return `
+          <div class="armory-item">
+            <div class="armory-info">
+              <h4>${item.name} <span style="color:#2dd4bf">[Lv. ${lv}/5]</span></h4>
+              <p>${item.desc}</p>
+            </div>
+            <button class="buy-upg-btn" ${!canAfford ? 'disabled' : ''} onclick="buyArmory('${item.key}', ${cost})">
+              ${isMax ? 'MAX' : `${cost} 🪙`}
+            </button>
+          </div>
+        `;
+      }).join('');
+      document.getElementById('armory-list').innerHTML = aHtml;
+    }
+
+    window.claimQuest = function(qid) {
+      const q = profile.quests.find(x => x.id === qid);
+      if (q && q.progress >= q.target && !q.claimed) {
+        q.claimed = true;
+        profile.doubloons += q.reward;
+        saveProfile();
+      }
+    };
+
+    window.selectOrBuySkin = function(skinId) {
+      const sk = SKINS_CATALOG.find(x => x.id === skinId);
+      if (!sk) return;
+      if (profile.unlockedSkins.includes(skinId)) {
+        profile.selectedSkin = skinId;
+        saveProfile();
+      } else if (profile.doubloons >= sk.cost) {
+        profile.doubloons -= sk.cost;
+        profile.unlockedSkins.push(skinId);
+        profile.selectedSkin = skinId;
+        saveProfile();
+      }
+    };
+
+    window.buyArmory = function(key, cost) {
+      if ((profile.armory[key] || 0) < 5 && profile.doubloons >= cost) {
+        profile.doubloons -= cost;
+        profile.armory[key] = (profile.armory[key] || 0) + 1;
+        saveProfile();
+      }
+    };
+
+    function showQuestToast(title, desc) {
+      const t = document.getElementById('quest-toast');
+      document.getElementById('toast-title').innerText = title;
+      document.getElementById('toast-desc').innerText = desc;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 4000);
+    }
+
+    renderDashboardUI();
+
+    // =========================================================
+    // ENGINE DI GIOCO & SOCKET.IO
+    // =========================================================
     let myId = null;
     let mapSize = 4000;
     let rocks = [];
@@ -237,9 +575,6 @@
     let myLastShotClient = 0;
     let camera = { x: 2000, y: 2000, shake: 0 };
 
-    // =========================================================
-    // ASSET LOADER + SCONTORNO AUTOMATICO SFONDO BIANCO
-    // =========================================================
     const assets = { playerHull: null, botHull: null, waterPattern: null };
 
     function removeWhiteBackground(img, tolerance = 55) {
@@ -333,9 +668,19 @@
     window.addEventListener('resize', resize);
     resize();
 
+    // Avvio Partita: Invia al server il nome + i bonus dell'Arsenale + la Skin scelta
     document.getElementById('playBtn').addEventListener('click', () => {
-      const name = document.getElementById('playerName').value;
-      socket.emit('joinGame', name);
+      const name = document.getElementById('playerName').value.trim() || 'Capitano Maledetto';
+      profile.name = name;
+      saveProfile();
+
+      socket.emit('joinGame', {
+        name,
+        meta: {
+          ...profile.armory,
+          skin: profile.selectedSkin
+        }
+      });
       document.getElementById('overlay').style.display = 'none';
       document.getElementById('hud').style.display = 'block';
     });
@@ -390,7 +735,28 @@
       updateHUD();
     });
 
-    // Ricezione Banner Warning Globale per il Boss
+    // Progresso in tempo reale delle Taglie Giornaliere mentre giochi
+    socket.on('questEvent', ({ type, amount, doubloons }) => {
+      if (doubloons) profile.doubloons += doubloons;
+      if (type === 'soul') profile.stats.souls += amount;
+      if (type === 'kill') profile.stats.kills += amount;
+      if (type === 'boss') profile.stats.bosses += amount;
+
+      profile.quests.forEach(q => {
+        if (q.type === type && !q.claimed) {
+          const wasIncomplete = q.progress < q.target;
+          q.progress += amount;
+          if (wasIncomplete && q.progress >= q.target) {
+            // Auto-accredita la ricompensa e mostra il Toast in partita!
+            q.claimed = true;
+            profile.doubloons += q.reward;
+            showQuestToast(`📜 ${q.title.toUpperCase()}`, `Taglia completata! +${q.reward} Dobloni Abissali 🪙`);
+          }
+        }
+      });
+      saveProfile();
+    });
+
     let bannerTimeout = null;
     socket.on('worldAnnouncement', ({ title, subtitle, color }) => {
       const banner = document.getElementById('world-banner');
@@ -476,10 +842,15 @@
       }
     });
 
-    socket.on('died', ({ level, kills }) => {
-      const statsEl = document.getElementById('death-stats');
-      statsEl.style.display = 'block';
-      statsEl.innerText = `Il tuo vascello è stato inghiottito dall'Abisso (Livello ${level} | Affondamenti: ${kills})`;
+    socket.on('died', ({ level, kills, earnedDoubloons }) => {
+      profile.doubloons += (earnedDoubloons || 20);
+      if (level > profile.stats.maxLevel) profile.stats.maxLevel = level;
+      saveProfile();
+
+      const repEl = document.getElementById('death-report');
+      repEl.style.display = 'block';
+      repEl.innerHTML = `☠️ Vascello affondato al <b>Livello ${level}</b> (${kills} Affondamenti)<br/>Bottino recuperato dalla spedizione: <b>+${earnedDoubloons || 20} Dobloni 🪙</b>`;
+
       document.getElementById('overlay').style.display = 'flex';
       document.getElementById('hud').style.display = 'none';
     });
@@ -487,17 +858,20 @@
     function updateHUD() {
       const me = gameState.players[myId];
       if (me) {
+        if (me.level > profile.stats.maxLevel) {
+          profile.stats.maxLevel = me.level;
+        }
+
         const pct = Math.min(100, (me.xp / me.maxXp) * 100);
         document.getElementById('xp-fill').style.width = pct + '%';
         document.getElementById('xp-text').innerText =
-          `Liv. ${me.level} | Anime: ${me.xp}/${me.maxXp}` +
-          (me.skillPoints > 0 ? ` (+${me.skillPoints} Punti Disponibili!)` : '');
+          `Liv. ${me.level} | Anime: ${me.xp}/${me.maxXp} | 🪙 ${profile.doubloons}` +
+          (me.skillPoints > 0 ? ` (+${me.skillPoints} Punti!)` : '');
 
         document.querySelectorAll('.upg-btn').forEach(btn => {
           btn.classList.toggle('available', me.skillPoints > 0);
         });
 
-        // Aggiorna i 3 Slot Reliquie
         for (let i = 0; i < 3; i++) {
           const slotEl = document.getElementById(`relic-${i}`);
           const rel = me.inventory && me.inventory[i];
@@ -512,7 +886,6 @@
           }
         }
 
-        // Stato Riparazione [R]
         const repElapsed = gameState.serverTime - me.lastRepair;
         const repRem = Math.max(0, Math.ceil((me.repairCd - repElapsed) / 1000));
         const repTextEl = document.getElementById('repair-text');
@@ -524,11 +897,9 @@
           repTextEl.innerText = '🛠️ [R] Ripara Scafo: Pronta';
         }
 
-        // Mostra il selettore di classe al Livello 4
         const classModal = document.getElementById('class-modal');
         classModal.style.display = (me.level >= 4 && !me.shipClass) ? 'flex' : 'none';
 
-        // Stato Abilità Speciale [E]
         const abBox = document.getElementById('ability-box');
         if (me.shipClass) {
           abBox.style.display = 'flex';
@@ -624,7 +995,6 @@
         ctx.save();
         ctx.translate(rel.x, rel.y);
 
-        // Aura dorata/mistica della reliquia in mare
         ctx.shadowBlur = 20;
         ctx.shadowColor = rel.color;
         ctx.strokeStyle = rel.color;
@@ -711,6 +1081,13 @@
       ctx.restore();
     }
 
+    function getSkinAuraColor(skin) {
+      if (skin === 'crimson') return '#f43f5e';
+      if (skin === 'gold') return '#facc15';
+      if (skin === 'void') return '#c084fc';
+      return '#2dd4bf';
+    }
+
     function drawShip(p) {
       if (!shipVisuals[p.id]) shipVisuals[p.id] = { sailBillow: 0, recoil: 0 };
       const vis = shipVisuals[p.id];
@@ -719,8 +1096,8 @@
       vis.recoil *= 0.85;
 
       const isBuffActive = gameState.serverTime < p.activeBuffUntil;
+      const skinColor = getSkinAuraColor(p.skin);
 
-      // Cerchio Rituale Drenante del Negromante quando l'abilità è attiva
       if (p.shipClass === 'necromancer' && isBuffActive) {
         ctx.save();
         ctx.translate(p.x, p.y);
@@ -734,7 +1111,6 @@
         ctx.restore();
       }
 
-      // Effetto Particellare Verde durante la Riparazione [R]
       if (p.isRepairing && Math.random() < 0.4) {
         particles.push({
           x: p.x + (Math.random() - 0.5) * 40,
@@ -754,7 +1130,7 @@
           y: p.y - Math.sin(p.angle) * 34,
           radius: 6,
           alpha: 0.4,
-          color: p.isBot ? '#7e22ce' : '#115e59'
+          color: skinColor
         });
       }
 
@@ -782,10 +1158,10 @@
         ctx.globalAlpha = 0.38;
       }
 
-      if (p.shipClass) {
-        ctx.shadowBlur = isBuffActive ? 26 : 10;
-        ctx.shadowColor = p.shipClass === 'juggernaut' ? '#fb923c' : (p.shipClass === 'phantom' ? '#38bdf8' : '#e879f9');
-      }
+      ctx.shadowBlur = isBuffActive ? 26 : 12;
+      ctx.shadowColor = p.shipClass
+        ? (p.shipClass === 'juggernaut' ? '#fb923c' : (p.shipClass === 'phantom' ? '#38bdf8' : '#e879f9'))
+        : skinColor;
 
       const scaleRecoil = 1 - vis.recoil * 0.06;
       ctx.scale(scaleRecoil, 1 + vis.recoil * 0.08);
@@ -799,7 +1175,7 @@
         ctx.restore();
       } else {
         ctx.fillStyle = p.isBot ? '#191326' : '#231710';
-        ctx.strokeStyle = p.isBot ? '#7e22ce' : '#5c3d28';
+        ctx.strokeStyle = skinColor;
         ctx.lineWidth = 2.5;
         ctx.beginPath();
         ctx.moveTo(38, 0);
@@ -816,13 +1192,12 @@
       ctx.globalAlpha = 1;
       ctx.restore();
 
-      // Etichetta Nome + Reliquie Equipaggiate + Barra HP
       ctx.save();
       ctx.font = '600 12px Inter';
       ctx.textAlign = 'center';
       const classTag = p.shipClass ? ` • ${p.shipClass.toUpperCase()}` : '';
       const relicIcons = (p.inventory || []).map(r => r.icon).join('');
-      ctx.fillStyle = p.id === myId ? '#5eead4' : (p.isBot ? '#c084fc' : '#e2d9c8');
+      ctx.fillStyle = p.id === myId ? skinColor : (p.isBot ? '#c084fc' : '#e2d9c8');
       ctx.fillText(`${p.name} [Lv.${p.level}${classTag}] ${relicIcons}`, p.x, p.y - 54);
 
       const barW = 58;
@@ -857,7 +1232,6 @@
         ctx.fillRect(-1000, -1000, mapSize + 2000, mapSize + 2000);
       }
 
-      // Scie d'Acqua
       for (let i = wakes.length - 1; i >= 0; i--) {
         const w = wakes[i];
         w.radius += 0.35;
@@ -872,7 +1246,6 @@
         ctx.globalAlpha = 1;
       }
 
-      // Anime Abissali
       const pulse = Math.sin(Date.now() * 0.006) * 2.5;
       gameState.souls.forEach(s => {
         ctx.save();
@@ -885,19 +1258,11 @@
         ctx.restore();
       });
 
-      // Reliquie Maledette in Mare
       drawRelics();
-
-      // Scogli Maledetti
       drawRocks();
-
-      // Boss Leviatano Abissale
       drawBoss();
-
-      // Vascelli
       Object.values(gameState.players).forEach(drawShip);
 
-      // Palle di Cannone e Teschi Spettrali Homing
       gameState.bullets.forEach(b => {
         ctx.fillStyle = b.color || '#ccfbf1';
         ctx.shadowBlur = b.homing ? 18 : 12;
@@ -908,7 +1273,6 @@
       });
       ctx.shadowBlur = 0;
 
-      // Particelle
       for (let i = particles.length - 1; i >= 0; i--) {
         const pt = particles[i];
         pt.x += pt.vx;
@@ -923,7 +1287,6 @@
         ctx.globalAlpha = 1;
       }
 
-      // Numeri di Danno Fluttuanti
       ctx.font = '700 15px Inter';
       ctx.textAlign = 'center';
       for (let i = dmgNumbers.length - 1; i >= 0; i--) {
@@ -937,7 +1300,6 @@
         ctx.globalAlpha = 1;
       }
 
-      // Cerchio Tempesta Battle Royale
       const st = gameState.storm;
       ctx.strokeStyle = 'rgba(220, 38, 38, 0.8)';
       ctx.lineWidth = 8;
@@ -975,7 +1337,6 @@
       ctx.arc((st.x / mapSize) * size, (st.y / mapSize) * size, (st.radius / mapSize) * size, 0, Math.PI * 2);
       ctx.stroke();
 
-      // Icona Boss sulla Minimappa
       if (gameState.boss && gameState.boss.alive) {
         ctx.fillStyle = gameState.boss.enraged ? '#f43f5e' : '#c084fc';
         ctx.beginPath();
@@ -983,7 +1344,6 @@
         ctx.fill();
       }
 
-      // Puntini Gialli per le Reliquie sulla Minimappa
       (gameState.relics || []).forEach(rel => {
         ctx.fillStyle = '#eab308';
         ctx.beginPath();

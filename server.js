@@ -19,9 +19,8 @@ let players = {};
 let bullets = [];
 let souls = [];
 let rocks = [];
-let relics = []; // Reliquie galleggianti in mare
+let relics = [];
 
-// Catalogo Reliquie RPG
 const RELIC_TYPES = [
   { id: 'chalice', name: 'Calice di Sangue', icon: '🩸', color: '#f43f5e', desc: '+20% Rubavita' },
   { id: 'powder', name: 'Polvere Abissale', icon: '⚡', color: '#38bdf8', desc: '-18% Ricarica' },
@@ -45,7 +44,6 @@ let storm = {
   shrinkSpeed: 1.1
 };
 
-// Boss Mondiale Potenziato
 let boss = {
   x: MAP_SIZE / 2,
   y: MAP_SIZE / 2,
@@ -101,40 +99,51 @@ function spawnRelicDrop(x, y, forceMythic = false) {
 
 for (let i = 0; i < MAX_SOULS; i++) spawnSoul();
 
-function createShip(id, name, isBot = false) {
+function createShip(id, name, isBot = false, meta = {}) {
   const angle = Math.random() * Math.PI * 2;
   const dist = 520 + Math.random() * (storm.radius * 0.55);
+
+  // Calcola bonus permanenti dell'Arsenale (cap a livello 5 per sicurezza)
+  const hullLv = Math.min(5, Math.max(0, Number(meta.hullLv) || 0));
+  const cannonLv = Math.min(5, Math.max(0, Number(meta.cannonLv) || 0));
+  const sailLv = Math.min(5, Math.max(0, Number(meta.sailLv) || 0));
+  const soulLv = Math.min(5, Math.max(0, Number(meta.soulLv) || 0));
+
+  const baseHp = 115 + hullLv * 12;
+  const baseDmg = 18 + cannonLv * 1.5;
+  const baseSpeed = 5.5 + sailLv * 0.22;
+
   return {
     id,
     name: name || 'Pirata Maledetto',
     isBot,
+    skin: meta.skin || (isBot ? 'void' : 'emerald'),
     shipClass: null,
     x: storm.x + Math.cos(angle) * dist,
     y: storm.y + Math.sin(angle) * dist,
     angle: Math.random() * Math.PI * 2,
     speed: 0,
-    maxSpeed: 5.5,
-    turnSpeed: 0.045,
-    hp: 115,
-    maxHp: 115,
-    damage: 18,
+    maxSpeed: baseSpeed,
+    turnSpeed: 0.045 + sailLv * 0.0015,
+    hp: baseHp,
+    maxHp: baseHp,
+    damage: baseDmg,
     reloadTime: 1350,
     lastShot: 0,
     level: 1,
-    xp: 0,
+    xp: soulLv * 15,
     maxXp: 45,
     skillPoints: 0,
     kills: 0,
+    soulsCollected: 0,
     abilityCd: 10000,
     lastAbility: 0,
     activeBuffUntil: 0,
     lastNecroPulse: 0,
-    // Sistema di Riparazione [R]
     isRepairing: false,
     repairUntil: 0,
     lastRepair: 0,
     repairCd: 18000,
-    // Equipaggiamento Reliquie (Max 3 slot)
     inventory: [],
     lifestealBonus: 0,
     armorBonus: 0,
@@ -156,7 +165,6 @@ function emitDamageNumber(x, y, amount, color = '#f87171', prefix = '') {
 
 function applyRelicToShip(p, relic) {
   if (p.inventory.length >= 3) {
-    // Sostituisce la reliquia più vecchia (tranne se mitica)
     const removed = p.inventory.shift();
     if (removed.id === 'chalice') p.lifestealBonus -= 0.2;
     if (removed.id === 'powder') p.reloadTime = Math.min(1800, p.reloadTime / 0.82);
@@ -179,6 +187,9 @@ function applyRelicToShip(p, relic) {
     p.lifestealBonus += 0.15;
   }
 
+  if (!p.isBot) {
+    io.to(p.id).emit('questEvent', { type: 'relic', amount: 1 });
+  }
   io.emit('dmgNum', { x: p.x, y: p.y - 35, text: `${relic.icon} ${relic.name}!`, color: relic.color });
 }
 
@@ -189,12 +200,19 @@ function interruptRepair(ship, reasonText = 'Riparazione Interrotta!') {
   io.emit('dmgNum', { x: ship.x, y: ship.y - 30, text: reasonText, color: '#fb923c' });
 }
 
+function getSkinBulletColor(skin, shipClass) {
+  if (shipClass === 'necromancer') return '#c084fc';
+  if (skin === 'crimson') return '#fb7185';
+  if (skin === 'gold') return '#fde047';
+  if (skin === 'void') return '#a855f7';
+  return '#99f6e4';
+}
+
 function fireBroadsides(ship) {
   const now = Date.now();
   if (now - ship.lastShot < ship.reloadTime) return;
   ship.lastShot = now;
 
-  // Sparare interrompe la riparazione
   if (ship.isRepairing) interruptRepair(ship);
 
   const sides = [-Math.PI / 2, Math.PI / 2];
@@ -217,7 +235,7 @@ function fireBroadsides(ship) {
         vx: Math.cos(fireAngle) * bulletSpeed + Math.cos(ship.angle) * (ship.speed * 0.3),
         vy: Math.sin(fireAngle) * bulletSpeed + Math.sin(ship.angle) * (ship.speed * 0.3),
         damage: ship.damage,
-        color: ship.shipClass === 'necromancer' ? '#c084fc' : '#99f6e4',
+        color: getSkinBulletColor(ship.skin, ship.shipClass),
         life: 60
       });
     });
@@ -240,14 +258,13 @@ function activateAbility(ship) {
     ship.activeBuffUntil = now + 3600;
     io.emit('abilityFx', { x: ship.x, y: ship.y, type: 'phantom' });
   } else if (ship.shipClass === 'necromancer') {
-    // REWORK NEGROMANTE: Campo Drenante (4.5s) + 6 Teschi Spettrali a Ricerca (Homing)!
     ship.activeBuffUntil = now + 4500;
     for (let i = 0; i < 6; i++) {
       const a = ship.angle + (Math.PI * 2 * i) / 6;
       bullets.push({
         ownerId: ship.id,
         isBossBullet: false,
-        homing: true, // Insegue automaticamente i bersagli!
+        homing: true,
         lifestealRatio: 0.65 + ship.lifestealBonus,
         x: ship.x + Math.cos(a) * 36,
         y: ship.y + Math.sin(a) * 36,
@@ -269,7 +286,7 @@ function startShipRepair(ship) {
 
   ship.lastRepair = now;
   ship.isRepairing = true;
-  ship.repairUntil = now + 4000; // 4 secondi di riparazione canalizzata
+  ship.repairUntil = now + 4000;
   io.emit('dmgNum', { x: ship.x, y: ship.y - 30, text: '🛠️ Riparazione...', color: '#4ade80' });
 }
 
@@ -296,9 +313,13 @@ function applyClassEvolution(p, chosenClass) {
 }
 
 io.on('connection', (socket) => {
-  socket.on('joinGame', (playerName) => {
-    const cleanName = (playerName || 'Capitano Senza Nome').trim().slice(0, 18);
-    players[socket.id] = createShip(socket.id, cleanName, false);
+  socket.on('joinGame', (payload) => {
+    const isObj = typeof payload === 'object' && payload !== null;
+    const rawName = isObj ? payload.name : payload;
+    const meta = isObj ? payload.meta : {};
+    const cleanName = (rawName || 'Capitano Senza Nome').trim().slice(0, 18);
+
+    players[socket.id] = createShip(socket.id, cleanName, false, meta);
     socket.emit('init', { id: socket.id, mapSize: MAP_SIZE, rocks });
   });
 
@@ -359,7 +380,6 @@ function updateBotAI(bot) {
     if (st === 'cannons') bot.damage += 4;
   }
 
-  // I Bot usano la riparazione se sono sotto il 40% di vita
   if (bot.hp < bot.maxHp * 0.4) startShipRepair(bot);
 
   const distToCenter = Math.hypot(bot.x - storm.x, bot.y - storm.y);
@@ -394,18 +414,16 @@ function updateBotAI(bot) {
 setInterval(() => {
   const now = Date.now();
 
-  // 1. Nebbia Battle Royale
   if (storm.radius > storm.minRadius) {
     storm.radius -= storm.shrinkSpeed / TICK_RATE;
   } else {
     storm.radius = MAP_SIZE * 0.68;
   }
 
-  // 2. Logica Boss Leviatano Potenziato (Fase 1 + Fase 2 Enrage + Warning)
+  // Boss Leviatano
   if (boss.alive) {
     boss.angle += boss.enraged ? 0.028 : 0.015;
 
-    // Passaggio in Fase 2 (Enrage sotto il 50% HP)
     if (!boss.enraged && boss.hp <= boss.maxHp * 0.5) {
       boss.enraged = true;
       io.emit('worldAnnouncement', {
@@ -422,7 +440,6 @@ setInterval(() => {
       const someoneClose = Object.values(players).some(p => Math.hypot(p.x - boss.x, p.y - boss.y) < 850);
 
       if (someoneClose) {
-        // Alterna Doppia Spirale e Onda d'Urto Mirata
         const count = boss.enraged ? 16 : 12;
         for (let i = 0; i < count; i++) {
           const a = boss.angle + (Math.PI * 2 * i) / count;
@@ -453,25 +470,22 @@ setInterval(() => {
     });
   }
 
-  // 3. Aggiorna Navi
+  // Aggiorna Navi
   for (let id in players) {
     const p = players[id];
     if (p.isBot) updateBotAI(p);
 
     const isBuffActive = now < p.activeBuffUntil;
 
-    // Gestione Riparazione Attiva [R]
     if (p.isRepairing) {
       if (now >= p.repairUntil || p.hp >= p.maxHp) {
         p.isRepairing = false;
       } else {
-        // Cura il 45% degli HP massimi nell'arco di 4 secondi
         const healPerTick = (p.maxHp * 0.45) / (4 * TICK_RATE);
         p.hp = Math.min(p.maxHp, p.hp + healPerTick);
       }
     }
 
-    // Campo Rituale del Negromante: Drena vita e rallenta i nemici entro 260px
     if (p.shipClass === 'necromancer' && isBuffActive && now - p.lastNecroPulse > 550) {
       p.lastNecroPulse = now;
       for (let otherId in players) {
@@ -480,7 +494,7 @@ setInterval(() => {
         if (Math.hypot(enemy.x - p.x, enemy.y - p.y) < 260) {
           const drain = 12;
           enemy.hp -= drain;
-          enemy.speed *= 0.65; // Rallenta il nemico
+          enemy.speed *= 0.65;
           p.hp = Math.min(p.maxHp, p.hp + drain);
           emitDamageNumber(enemy.x, enemy.y - 15, drain, '#e879f9', '-');
           emitDamageNumber(p.x, p.y - 25, drain, '#4ade80', '+');
@@ -491,7 +505,7 @@ setInterval(() => {
     let speedMult = 1.0;
     if (p.shipClass === 'phantom' && isBuffActive) speedMult = 1.45;
     if (p.shipClass === 'juggernaut' && isBuffActive) speedMult = 1.85;
-    if (p.isRepairing) speedMult = 0.65; // Rallenta leggermente mentre ripara
+    if (p.isRepairing) speedMult = 0.65;
 
     const effectiveMaxSpeed = p.maxSpeed * speedMult;
 
@@ -508,7 +522,6 @@ setInterval(() => {
     p.x = Math.max(80, Math.min(MAP_SIZE - 80, p.x));
     p.y = Math.max(80, Math.min(MAP_SIZE - 80, p.y));
 
-    // Collisione con Scogli
     rocks.forEach(r => {
       const dx = p.x - r.x;
       const dy = p.y - r.y;
@@ -522,7 +535,6 @@ setInterval(() => {
       }
     });
 
-    // Speronamento tra Navi
     for (let otherId in players) {
       if (otherId === id) continue;
       const other = players[otherId];
@@ -547,7 +559,6 @@ setInterval(() => {
       }
     }
 
-    // Nebbia Maledetta
     const distFromStormCenter = Math.hypot(p.x - storm.x, p.y - storm.y);
     if (distFromStormCenter > storm.radius) {
       p.hp -= 0.4;
@@ -556,7 +567,6 @@ setInterval(() => {
       p.hp = Math.min(p.maxHp, p.hp + (hasMythic ? 0.14 : 0.05));
     }
 
-    // Passiva Negromante: Magnetismo delle Anime (attira le anime nel raggio di 220px)
     if (p.shipClass === 'necromancer') {
       souls.forEach(s => {
         const d = Math.hypot(p.x - s.x, p.y - s.y);
@@ -567,15 +577,20 @@ setInterval(() => {
       });
     }
 
-    // Raccolta Anime
+    // Raccolta Anime + Notifica Quest al Client
     for (let i = souls.length - 1; i >= 0; i--) {
       const s = souls[i];
       if (Math.hypot(p.x - s.x, p.y - s.y) < 46) {
         p.xp += s.value;
+        p.soulsCollected++;
         const healAmt = (s.isBossDrop ? 22 : 8) + (p.shipClass === 'necromancer' ? 5 : 0);
         p.hp = Math.min(p.maxHp, p.hp + healAmt);
         souls.splice(i, 1);
         if (souls.length < MAX_SOULS) spawnSoul();
+
+        if (!p.isBot) {
+          io.to(p.id).emit('questEvent', { type: 'soul', amount: 1, doubloons: s.isBossDrop ? 12 : 3 });
+        }
 
         while (p.xp >= p.maxXp) {
           p.xp -= p.maxXp;
@@ -588,7 +603,6 @@ setInterval(() => {
       }
     }
 
-    // Raccolta Reliquie Maledette
     for (let i = relics.length - 1; i >= 0; i--) {
       const rel = relics[i];
       if (Math.hypot(p.x - rel.x, p.y - rel.y) < 48) {
@@ -597,12 +611,10 @@ setInterval(() => {
       }
     }
 
-    // Morte Nave
     if (p.hp <= 0) {
       for (let k = 0; k < 6; k++) {
         spawnSoul(p.x + (Math.random() - 0.5) * 100, p.y + (Math.random() - 0.5) * 100, 40, true);
       }
-      // 45% di probabilità di rilasciare una Reliquia Maledetta alla morte
       if (Math.random() < 0.45) {
         spawnRelicDrop(p.x, p.y, false);
       }
@@ -610,17 +622,22 @@ setInterval(() => {
       if (p.isBot) {
         players[id] = createShip(id, p.name, true);
       } else {
-        io.to(id).emit('died', { level: p.level, kills: p.kills });
+        const earnedDoubloons = p.kills * 40 + p.level * 15;
+        io.to(id).emit('died', {
+          level: p.level,
+          kills: p.kills,
+          souls: p.soulsCollected,
+          earnedDoubloons
+        });
         delete players[id];
       }
     }
   }
 
-  // 4. Aggiorna Proiettili (Inclusi i Teschi Homing del Negromante)
+  // Aggiorna Proiettili
   for (let i = bullets.length - 1; i >= 0; i--) {
     const b = bullets[i];
 
-    // Se è un Teschio Spettrale Homing, curva verso il nemico più vicino (o il Boss)
     if (b.homing) {
       let closestTarget = null;
       let minDist = 420;
@@ -650,7 +667,6 @@ setInterval(() => {
       continue;
     }
 
-    // Impatto Scogli
     let hitRock = false;
     for (let r of rocks) {
       if (Math.hypot(b.x - r.x, b.y - r.y) < r.radius) {
@@ -679,18 +695,23 @@ setInterval(() => {
       if (boss.hp <= 0) {
         boss.alive = false;
         boss.respawnTimer = now + 50000;
-        const killerName = players[b.ownerId] ? players[b.ownerId].name : 'Un Pirata';
+        const killer = players[b.ownerId];
+        const killerName = killer ? killer.name : 'Un Pirata';
+
         io.emit('worldAnnouncement', {
           title: `👑 ${killerName.toUpperCase()} HA ABBATUTO IL LEVIATANO!`,
           subtitle: 'Reliquie Mitiche e Anime Antiche galleggiano al centro della mappa!',
           color: '#fbbf24'
         });
 
-        if (players[b.ownerId]) {
-          players[b.ownerId].xp += 260;
-          players[b.ownerId].kills += 2;
+        if (killer) {
+          killer.xp += 260;
+          killer.kills += 2;
+          if (!killer.isBot) {
+            io.to(killer.id).emit('questEvent', { type: 'boss', amount: 1, doubloons: 150 });
+          }
         }
-        // Rilascia 1 Reliquia Mitica + 2 Reliquie Rare + 18 Anime d'Oro
+
         spawnRelicDrop(boss.x, boss.y, true);
         spawnRelicDrop(boss.x - 65, boss.y + 40, false);
         spawnRelicDrop(boss.x + 65, boss.y - 40, false);
@@ -717,7 +738,6 @@ setInterval(() => {
         const finalDmg = b.damage * (1 - dmgReduction);
         target.hp -= finalDmg;
 
-        // Subire un colpo di cannone interrompe la riparazione!
         if (target.isRepairing) interruptRepair(target, 'Colpito! Riparazione Interrotta!');
 
         emitDamageNumber(target.x, target.y - 15, finalDmg, '#f87171');
@@ -731,8 +751,12 @@ setInterval(() => {
         }
 
         if (target.hp <= 0 && players[b.ownerId]) {
-          players[b.ownerId].kills++;
-          players[b.ownerId].xp += 80;
+          const killer = players[b.ownerId];
+          killer.kills++;
+          killer.xp += 80;
+          if (!killer.isBot) {
+            io.to(killer.id).emit('questEvent', { type: 'kill', amount: 1, doubloons: 35 });
+          }
         }
         bullets.splice(i, 1);
         break;
@@ -745,5 +769,5 @@ setInterval(() => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  console.log(`🏴‍☠️ Abyssal Sails RPG v0.4 attivo su http://localhost:${PORT}`);
+  console.log(`🏴‍☠️ Abyssal Sails RPG v0.5 (Harbor Dashboard) attivo su http://localhost:${PORT}`);
 });
