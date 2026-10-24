@@ -47,8 +47,8 @@ let storm = {
 let boss = {
   x: MAP_SIZE / 2,
   y: MAP_SIZE / 2,
-  hp: 2600,
-  maxHp: 2600,
+  hp: 2800,
+  maxHp: 2800,
   radius: 82,
   angle: 0,
   alive: true,
@@ -57,6 +57,24 @@ let boss = {
   lastAttack: 0,
   attackCounter: 0
 };
+
+// EVENTO DINAMICO 1: Isola del Tesoro Maledetta (King of the Hill)
+let treasureIsland = {
+  active: false,
+  x: 1200,
+  y: 1200,
+  radius: 190,
+  progress: 0,
+  capturingId: null,
+  contested: false,
+  nextSpawnTime: Date.now() + 20000
+};
+
+// EVENTO DINAMICO 2: Vortici Abissali (Maelstrom in movimento)
+let whirlpools = [
+  { id: 'wp_1', x: 1300, y: 2600, vx: 0.7, vy: -0.5, radius: 165, angle: 0 },
+  { id: 'wp_2', x: 2700, y: 1400, vx: -0.6, vy: 0.65, radius: 165, angle: 0 }
+];
 
 for (let i = 0; i < ROCK_COUNT; i++) {
   let rx, ry, distCenter;
@@ -103,15 +121,15 @@ function createShip(id, name, isBot = false, meta = {}) {
   const angle = Math.random() * Math.PI * 2;
   const dist = 520 + Math.random() * (storm.radius * 0.55);
 
-  // Calcola bonus permanenti dell'Arsenale (cap a livello 5 per sicurezza)
-  const hullLv = Math.min(5, Math.max(0, Number(meta.hullLv) || 0));
-  const cannonLv = Math.min(5, Math.max(0, Number(meta.cannonLv) || 0));
-  const sailLv = Math.min(5, Math.max(0, Number(meta.sailLv) || 0));
-  const soulLv = Math.min(5, Math.max(0, Number(meta.soulLv) || 0));
+  // Nuovo Cap Arsenale a 10 Livelli con progressione bilanciata
+  const hullLv = Math.min(10, Math.max(0, Number(meta.hullLv) || 0));
+  const cannonLv = Math.min(10, Math.max(0, Number(meta.cannonLv) || 0));
+  const sailLv = Math.min(10, Math.max(0, Number(meta.sailLv) || 0));
+  const soulLv = Math.min(10, Math.max(0, Number(meta.soulLv) || 0));
 
-  const baseHp = 115 + hullLv * 12;
-  const baseDmg = 18 + cannonLv * 1.5;
-  const baseSpeed = 5.5 + sailLv * 0.22;
+  const baseHp = 115 + hullLv * 8;
+  const baseDmg = 18 + cannonLv * 1.0;
+  const baseSpeed = 5.5 + sailLv * 0.14;
 
   return {
     id,
@@ -124,18 +142,19 @@ function createShip(id, name, isBot = false, meta = {}) {
     angle: Math.random() * Math.PI * 2,
     speed: 0,
     maxSpeed: baseSpeed,
-    turnSpeed: 0.045 + sailLv * 0.0015,
+    turnSpeed: 0.045 + sailLv * 0.001,
     hp: baseHp,
     maxHp: baseHp,
     damage: baseDmg,
     reloadTime: 1350,
     lastShot: 0,
     level: 1,
-    xp: soulLv * 15,
+    xp: soulLv * 10,
     maxXp: 45,
     skillPoints: 0,
     kills: 0,
     soulsCollected: 0,
+    isMostWanted: false,
     abilityCd: 10000,
     lastAbility: 0,
     activeBuffUntil: 0,
@@ -188,7 +207,7 @@ function applyRelicToShip(p, relic) {
   }
 
   if (!p.isBot) {
-    io.to(p.id).emit('questEvent', { type: 'relic', amount: 1 });
+    io.to(p.id).emit('questEvent', { type: 'relic', amount: 1, doubloons: 5 });
   }
   io.emit('dmgNum', { x: p.x, y: p.y - 35, text: `${relic.icon} ${relic.name}!`, color: relic.color });
 }
@@ -420,6 +439,90 @@ setInterval(() => {
     storm.radius = MAP_SIZE * 0.68;
   }
 
+  // Determina il Most Wanted (Leader attuale con almeno livello 3)
+  let topPlayerId = null;
+  let bestScore = -1;
+  for (let id in players) {
+    players[id].isMostWanted = false;
+    const sc = players[id].level * 100 + players[id].kills * 50;
+    if (players[id].level >= 3 && sc > bestScore) {
+      bestScore = sc;
+      topPlayerId = id;
+    }
+  }
+  if (topPlayerId && players[topPlayerId]) {
+    players[topPlayerId].isMostWanted = true;
+  }
+
+  // EVENTO DINAMICO: Isola del Tesoro Maledetta (King of the Hill)
+  if (!treasureIsland.active && now >= treasureIsland.nextSpawnTime) {
+    const angle = Math.random() * Math.PI * 2;
+    const dist = 600 + Math.random() * 800;
+    treasureIsland.x = MAP_SIZE / 2 + Math.cos(angle) * dist;
+    treasureIsland.y = MAP_SIZE / 2 + Math.sin(angle) * dist;
+    treasureIsland.progress = 0;
+    treasureIsland.capturingId = null;
+    treasureIsland.contested = false;
+    treasureIsland.active = true;
+
+    io.emit('worldAnnouncement', {
+      title: '🏝️ L\'ISOLA DEL TESORO MALEDETTA È EMERSA!',
+      subtitle: 'Mantieni la posizione nell\'anello dorato per sbloccare il Forziere Antico!',
+      color: '#facc15'
+    });
+  } else if (treasureIsland.active) {
+    const shipsInside = Object.values(players).filter(
+      p => Math.hypot(p.x - treasureIsland.x, p.y - treasureIsland.y) < treasureIsland.radius
+    );
+
+    if (shipsInside.length === 1) {
+      treasureIsland.contested = false;
+      const capShip = shipsInside[0];
+      treasureIsland.capturingId = capShip.id;
+      treasureIsland.progress = Math.min(100, treasureIsland.progress + 0.55);
+
+      if (treasureIsland.progress >= 100) {
+        treasureIsland.active = false;
+        treasureIsland.nextSpawnTime = now + 65000;
+
+        io.emit('worldAnnouncement', {
+          title: `💰 ${capShip.name.toUpperCase()} HA SACCHEGGIATO L'ISOLA DEL TESORO!`,
+          subtitle: 'Il Forziere Antico è stato aperto!',
+          color: '#facc15'
+        });
+
+        capShip.xp += 180;
+        if (!capShip.isBot) {
+          io.to(capShip.id).emit('questEvent', { type: 'island', amount: 1, doubloons: 120 });
+        }
+        spawnRelicDrop(treasureIsland.x - 40, treasureIsland.y, false);
+        spawnRelicDrop(treasureIsland.x + 40, treasureIsland.y, false);
+        for (let k = 0; k < 10; k++) {
+          spawnSoul(
+            treasureIsland.x + (Math.random() - 0.5) * 140,
+            treasureIsland.y + (Math.random() - 0.5) * 140,
+            45,
+            true
+          );
+        }
+      }
+    } else if (shipsInside.length > 1) {
+      treasureIsland.contested = true;
+    } else {
+      treasureIsland.contested = false;
+      treasureIsland.progress = Math.max(0, treasureIsland.progress - 0.2);
+    }
+  }
+
+  // EVENTO DINAMICO: Movimento e Attrazione Vortici Maelstrom
+  whirlpools.forEach(wp => {
+    wp.x += wp.vx;
+    wp.y += wp.vy;
+    wp.angle += 0.04;
+    if (wp.x < 500 || wp.x > MAP_SIZE - 500) wp.vx *= -1;
+    if (wp.y < 500 || wp.y > MAP_SIZE - 500) wp.vy *= -1;
+  });
+
   // Boss Leviatano
   if (boss.alive) {
     boss.angle += boss.enraged ? 0.028 : 0.015;
@@ -485,6 +588,23 @@ setInterval(() => {
         p.hp = Math.min(p.maxHp, p.hp + healPerTick);
       }
     }
+
+    // Effetto Vortici Maelstrom sulle navi
+    whirlpools.forEach(wp => {
+      const dx = wp.x - p.x;
+      const dy = wp.y - p.y;
+      const d = Math.hypot(dx, dy);
+      if (d < wp.radius && d > 5) {
+        // Trascina la nave verso il centro e ruota leggermente il timone
+        p.x += (dx / d) * 2.1;
+        p.y += (dy / d) * 2.1;
+        p.angle += 0.025;
+        if (d < 55) {
+          p.hp -= 0.45;
+          if (p.isRepairing) interruptRepair(p, 'Vortice Maelstrom!');
+        }
+      }
+    });
 
     if (p.shipClass === 'necromancer' && isBuffActive && now - p.lastNecroPulse > 550) {
       p.lastNecroPulse = now;
@@ -577,7 +697,7 @@ setInterval(() => {
       });
     }
 
-    // Raccolta Anime + Notifica Quest al Client
+    // ECONOMIA HARDCORE: Le anime normali danno XP ma 0 Dobloni (solo quelle del Boss danno +4 Dobloni)
     for (let i = souls.length - 1; i >= 0; i--) {
       const s = souls[i];
       if (Math.hypot(p.x - s.x, p.y - s.y) < 46) {
@@ -589,7 +709,7 @@ setInterval(() => {
         if (souls.length < MAX_SOULS) spawnSoul();
 
         if (!p.isBot) {
-          io.to(p.id).emit('questEvent', { type: 'soul', amount: 1, doubloons: s.isBossDrop ? 12 : 3 });
+          io.to(p.id).emit('questEvent', { type: 'soul', amount: 1, doubloons: s.isBossDrop ? 4 : 0 });
         }
 
         while (p.xp >= p.maxXp) {
@@ -622,7 +742,8 @@ setInterval(() => {
       if (p.isBot) {
         players[id] = createShip(id, p.name, true);
       } else {
-        const earnedDoubloons = p.kills * 40 + p.level * 15;
+        // Ricompensa fine partita ridotta e bilanciata
+        const earnedDoubloons = p.kills * 12 + Math.max(0, (p.level - 1) * 6);
         io.to(id).emit('died', {
           level: p.level,
           kills: p.kills,
@@ -694,7 +815,7 @@ setInterval(() => {
 
       if (boss.hp <= 0) {
         boss.alive = false;
-        boss.respawnTimer = now + 50000;
+        boss.respawnTimer = now + 55000;
         const killer = players[b.ownerId];
         const killerName = killer ? killer.name : 'Un Pirata';
 
@@ -708,7 +829,7 @@ setInterval(() => {
           killer.xp += 260;
           killer.kills += 2;
           if (!killer.isBot) {
-            io.to(killer.id).emit('questEvent', { type: 'boss', amount: 1, doubloons: 150 });
+            io.to(killer.id).emit('questEvent', { type: 'boss', amount: 1, doubloons: 65 });
           }
         }
 
@@ -754,8 +875,19 @@ setInterval(() => {
           const killer = players[b.ownerId];
           killer.kills++;
           killer.xp += 80;
+
+          // Se uccidi il Most Wanted incassi +80 Dobloni di Taglia!
+          const bountyBonus = target.isMostWanted ? 80 : 10;
+          if (target.isMostWanted) {
+            io.emit('worldAnnouncement', {
+              title: `💀 TAGLIA RISCOSSA! ${killer.name.toUpperCase()} HA AFFONDATO IL TERORE DEI MARI!`,
+              subtitle: `Incassa una taglia speciale di +80 Dobloni Abissali!`,
+              color: '#fbbf24'
+            });
+          }
+
           if (!killer.isBot) {
-            io.to(killer.id).emit('questEvent', { type: 'kill', amount: 1, doubloons: 35 });
+            io.to(killer.id).emit('questEvent', { type: 'kill', amount: 1, doubloons: bountyBonus });
           }
         }
         bullets.splice(i, 1);
@@ -764,10 +896,20 @@ setInterval(() => {
     }
   }
 
-  io.emit('state', { players, bullets, souls, relics, storm, boss, serverTime: now });
+  io.emit('state', {
+    players,
+    bullets,
+    souls,
+    relics,
+    storm,
+    boss,
+    treasureIsland,
+    whirlpools,
+    serverTime: now
+  });
 }, 1000 / TICK_RATE);
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  console.log(`🏴‍☠️ Abyssal Sails RPG v0.5 (Harbor Dashboard) attivo su http://localhost:${PORT}`);
+  console.log(`🏴‍☠️ Abyssal Sails RPG v0.6 (Hardcore Economy & Events) attivo su http://localhost:${PORT}`);
 });
