@@ -14,19 +14,49 @@
     #vignette {
       position: fixed; inset: 0; pointer-events: none; z-index: 5;
       background: radial-gradient(circle at center, transparent 55%, rgba(0, 0, 0, 0.88) 100%);
+      transition: background 0.8s;
+    }
+
+    /* Barra Timer Ciclo Lobby & Meteo (In alto al centro) */
+    #match-top-bar {
+      position: fixed; top: 14px; left: 50%; transform: translateX(-50%);
+      display: flex; align-items: center; gap: 14px;
+      background: rgba(10, 14, 20, 0.9); border: 1px solid #3b3026;
+      padding: 7px 20px; border-radius: 20px; z-index: 12; pointer-events: none;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.7);
+    }
+    #match-timer { font-family: 'Cinzel', serif; font-weight: 800; font-size: 1.05rem; color: #5eead4; letter-spacing: 1px; }
+    #weather-badge { font-size: 0.78rem; color: #cbd5e1; border-left: 1px solid #334155; padding-left: 12px; }
+
+    /* Modal Podio Fine Round (10s prima del Reset Lobby) */
+    #podium-modal {
+      position: fixed; inset: 0; background: rgba(4, 7, 12, 0.88);
+      display: none; flex-direction: column; align-items: center; justify-content: center;
+      z-index: 30; backdrop-filter: blur(8px);
+    }
+    .podium-box {
+      background: rgba(14, 19, 27, 0.96); border: 2px solid #facc15;
+      box-shadow: 0 0 60px rgba(250, 204, 21, 0.3); padding: 32px 44px;
+      border-radius: 10px; text-align: center; max-width: 520px; width: 92%;
+    }
+    .podium-box h2 { font-family: 'Cinzel', serif; color: #fde047; font-size: 1.8rem; margin-bottom: 6px; }
+    .podium-row {
+      display: flex; justify-content: space-between; align-items: center;
+      background: #090d14; border: 1px solid #334155; padding: 12px 16px;
+      border-radius: 6px; margin: 10px 0; font-size: 0.92rem;
     }
 
     #world-banner {
-      position: fixed; top: 24px; left: 50%; transform: translateX(-50%) translateY(-130px);
+      position: fixed; top: 64px; left: 50%; transform: translateX(-50%) translateY(-160px);
       background: linear-gradient(90deg, transparent, rgba(15, 10, 28, 0.96) 20%, rgba(15, 10, 28, 0.96) 80%, transparent);
       border-top: 2px solid #c084fc; border-bottom: 2px solid #c084fc;
-      padding: 14px 48px; text-align: center; z-index: 15; pointer-events: none;
+      padding: 12px 44px; text-align: center; z-index: 15; pointer-events: none;
       transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
       box-shadow: 0 10px 35px rgba(0, 0, 0, 0.85);
     }
     #world-banner.show { transform: translateX(-50%) translateY(0); }
-    #banner-title { font-family: 'Cinzel', serif; font-weight: 800; font-size: 1.15rem; color: #e9d5ff; letter-spacing: 1.5px; }
-    #banner-sub { font-size: 0.82rem; color: #cbd5e1; margin-top: 4px; }
+    #banner-title { font-family: 'Cinzel', serif; font-weight: 800; font-size: 1.1rem; color: #e9d5ff; letter-spacing: 1.5px; }
+    #banner-sub { font-size: 0.8rem; color: #cbd5e1; margin-top: 4px; }
 
     #quest-toast {
       position: fixed; bottom: 130px; right: 20px; transform: translateX(380px);
@@ -39,7 +69,7 @@
     #quest-toast p { font-size: 0.78rem; color: #e2e8f0; margin-top: 2px; }
 
     /* =====================================================
-       HOME PAGE DASHBOARD ("IL PORTO MALEDETTO" v0.7)
+       HOME PAGE DASHBOARD ("IL PORTO MALEDETTO" v0.8)
        ===================================================== */
     #overlay {
       position: fixed; inset: 0;
@@ -149,7 +179,7 @@
     }
     #playBtn:hover { background: #0d9488; color: #fff; box-shadow: 0 0 30px rgba(45, 212, 191, 0.5); }
 
-    .controls-mini { font-size: 0.74rem; color: #94a3b8; line-height: 1.5; }
+    .controls-mini { font-size: 0.73rem; color: #94a3b8; line-height: 1.5; }
     .controls-mini span { color: #5eead4; font-weight: 600; }
 
     .armory-item {
@@ -165,9 +195,7 @@
     }
     .buy-upg-btn:disabled { opacity: 0.38; border-color: #475569; color: #94a3b8; cursor: not-allowed; }
 
-    /* =====================================================
-       HUD IN PARTITA & GESTIONE RELIQUIE SMART
-       ===================================================== */
+    /* HUD IN PARTITA */
     #hud { position: fixed; inset: 0; pointer-events: none; z-index: 10; display: none; }
     #leaderboard {
       position: absolute; top: 16px; right: 16px; width: 245px;
@@ -185,20 +213,16 @@
       background: rgba(10, 15, 22, 0.9); border: 1px solid #3b3026;
       border-radius: 6px; padding: 7px 11px; font-size: 0.78rem; color: #94a3b8;
       display: flex; align-items: center; gap: 9px; min-width: 195px; cursor: pointer;
-      transition: 0.15s;
     }
     .relic-slot.filled { border-color: #eab308; color: #fef08a; box-shadow: 0 0 12px rgba(234, 179, 8, 0.15); }
     .relic-stars { color: #facc15; font-size: 0.75rem; letter-spacing: 1px; }
 
-    #synergy-list {
-      display: flex; flex-direction: column; gap: 4px; margin-top: 4px;
-    }
+    #synergy-list { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
     .synergy-badge {
       background: rgba(234, 179, 8, 0.14); border: 1px solid #ca8a04;
       color: #fde047; font-size: 0.72rem; padding: 4px 8px; border-radius: 4px; font-weight: 600;
     }
 
-    /* Popup Scelta Scarto Reliquia quando i 3 slot sono pieni */
     #pending-relic-modal {
       display: none; align-items: center; gap: 10px;
       background: rgba(28, 18, 38, 0.96); border: 2px solid #facc15;
@@ -231,7 +255,7 @@
       position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%);
       display: flex; flex-direction: column; align-items: center; gap: 9px; pointer-events: auto;
     }
-    #action-pills { display: flex; gap: 10px; align-items: center; }
+    #action-pills { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: center; }
     .pill-box {
       display: flex; align-items: center; gap: 8px; cursor: pointer;
       background: rgba(15, 23, 42, 0.92); border: 1px solid #475569;
@@ -259,6 +283,24 @@
 
   <div id="vignette"></div>
 
+  <!-- Top Bar Ciclo Lobby & Meteo -->
+  <div id="match-top-bar">
+    <span id="match-timer">⏳ 06:00</span>
+    <span id="weather-badge">🌊 Mare Calmo</span>
+  </div>
+
+  <!-- Modal Podio di Fine Spedizione (10s prima del Reset Lobby) -->
+  <div id="podium-modal">
+    <div class="podium-box">
+      <h2>👑 FINE DELLA SPEDIZIONE!</h2>
+      <p style="font-size:0.85rem; color:#94a3b8; margin-bottom:16px;">I Signori dell'Abisso di questo ciclo ricevono il Bottino Reale:</p>
+      <div id="podium-list"></div>
+      <p id="podium-countdown" style="margin-top:18px; color:#5eead4; font-family:Cinzel; font-weight:800;">
+        Nuova Mappa e Reset Livelli in 10s...
+      </p>
+    </div>
+  </div>
+
   <div id="world-banner">
     <div id="banner-title">🦑 IL LEVIATANO ABISSALE È EMERSO!</div>
     <div id="banner-sub">Dirigiti al centro della mappa per ottenere Reliquie Mitiche</div>
@@ -270,7 +312,7 @@
   </div>
 
   <!-- =====================================================
-       HOME PAGE - DASHBOARD ("IL PORTO MALEDETTO" v0.7)
+       HOME PAGE - DASHBOARD ("IL PORTO MALEDETTO" v0.8)
        ===================================================== -->
   <div id="overlay">
     <div class="dashboard-wrap">
@@ -278,7 +320,7 @@
       <div class="dash-header">
         <div class="brand-title">
           <h1>ABYSSAL SAILS</h1>
-          <span>IL PORTO MALEDETTO • RELIC FORGE & TACTICAL UPDATE v0.7</span>
+          <span>IL PORTO MALEDETTO • LOBBY CYCLE & EXTRACTION UPDATE v0.8</span>
         </div>
         <div class="captain-badges">
           <button class="sound-btn" id="soundToggleBtn" onclick="toggleSound()">🔊 Audio: ON</button>
@@ -305,7 +347,7 @@
             <div class="stat-box">Vascelli Affondati <b id="stat-kills">0</b></div>
             <div class="stat-box">Anime Raccolte <b id="stat-souls">0</b></div>
             <div class="stat-box">Leviatani Uccisi <b id="stat-bosses">0</b></div>
-            <div class="stat-box">Tesori Saccheggiati <b id="stat-islands">0</b></div>
+            <div class="stat-box">Tesori & Podi <b id="stat-islands">0</b></div>
           </div>
         </div>
 
@@ -335,9 +377,9 @@
           <button id="playBtn">SALPA NELL'ABISSO</button>
 
           <div class="controls-mini">
-            <span>W/S</span> Vele • <span>A/D</span> Timone • <span>SPAZIO / CLICK SX</span> Bordate<br/>
-            <span>Q</span> Usa Oggetto Tattico • <span>R</span> Ripara • <span>E / CLICK DX</span> Abilità<br/>
-            <span>Reliquie Doppie:</span> Si fondono fino a <span>★★★</span>! Usa <span>Z/X/C</span> per cambiare slot!
+            <span>W/S/A/D</span> Manovra • <span>SPAZIO / CLICK SX</span> Bordate • <span>Q</span> Oggetto Tattico<br/>
+            <span>R</span> Ripara • <span>E / CLICK DX</span> Abilità • <span>F</span> Patto Mercante Nero • <span>T</span> Emote<br/>
+            <span>🌀 Portale Verde:</span> Resta dentro 5s per estrarre il bottino con +50 🪙 Bonus!
           </div>
         </div>
 
@@ -360,7 +402,6 @@
       <div id="lb-list"></div>
     </div>
 
-    <!-- 3 Slot Reliquie con Stelle di Fusione + Sinergie Attive -->
     <div id="relics-panel">
       <div class="relic-slot" id="relic-0" onclick="swapRelic(0)">🏺 [Z] Slot Reliquia Vuoto</div>
       <div class="relic-slot" id="relic-1" onclick="swapRelic(1)">🏺 [X] Slot Reliquia Vuoto</div>
@@ -387,7 +428,6 @@
     </div>
 
     <div id="rpg-bar">
-      <!-- Popup di Scelta quando hai tutti e 3 gli slot Reliquia pieni -->
       <div id="pending-relic-modal">
         <span id="pending-relic-text">Trovata Reliquia! Sostituisci con:</span>
         <button class="swap-key-btn" onclick="swapRelic(0)">[Z] Slot 1</button>
@@ -397,13 +437,13 @@
 
       <div id="action-pills">
         <div id="consumable-box" class="pill-box" onclick="socket.emit('useConsumable')">
-          <span id="consumable-text">📦 [Q] Nessun Oggetto Tattico</span>
+          <span id="consumable-text">📦 [Q] Nessun Oggetto</span>
         </div>
         <div id="repair-box" class="pill-box" onclick="triggerRepair()">
-          <span id="repair-text">🛠️ [R] Ripara Scafo: Pronta</span>
+          <span id="repair-text">🛠️ [R] Ripara: Pronta</span>
         </div>
         <div id="ability-box" class="pill-box" onclick="socket.emit('useAbility')">
-          <span id="ability-text">⚡ [E / Click DX] Abilità Pronta</span>
+          <span id="ability-text">⚡ [E] Abilità Pronta</span>
         </div>
       </div>
 
@@ -727,6 +767,9 @@
       boss: { x: 2000, y: 2000, hp: 2800, maxHp: 2800, radius: 82, alive: true, enraged: false, angle: 0 },
       treasureIsland: { active: false, x: 1200, y: 1200, radius: 190, progress: 0 },
       treasureGalleon: { active: false, x: 0, y: 0, hp: 1400, maxHp: 1400, angle: 0 },
+      extractionPortal: { active: false, x: 2800, y: 2800, radius: 110 },
+      blackMerchant: { x: 1100, y: 2900, radius: 130 },
+      lobbyState: { phase: 'playing', matchEndTime: Date.now() + 360000, weather: 'calm', podium: [] },
       whirlpools: [],
       serverTime: Date.now()
     };
@@ -859,6 +902,8 @@
       if (e.code === 'Space') socket.emit('shoot');
       if (k === 'e' || k === 'shift') socket.emit('useAbility');
       if (k === 'q') socket.emit('useConsumable');
+      if (k === 'f') socket.emit('useMerchant');
+      if (k === 't') socket.emit('sendEmote');
       if (k === 'r') triggerRepair();
       if (k === 'z') swapRelic(0);
       if (k === 'x') swapRelic(1);
@@ -897,6 +942,27 @@
       rocks = data.rocks || [];
     });
 
+    // Evento di Fine Ciclo Lobby -> Mostra il Podio per 10 secondi
+    socket.on('lobbyEnd', ({ podium }) => {
+      playHornSound();
+      const modal = document.getElementById('podium-modal');
+      const list = document.getElementById('podium-list');
+      const medals = ['🥇 1° POSTO', '🥈 2° POSTO', '🥉 3° POSTO'];
+      list.innerHTML = podium.map((p, i) => `
+        <div class="podium-row">
+          <span><b>${medals[i]}</b> — ${p.name} (Lv.${p.level} • ${p.kills}☠️)</span>
+          <span style="color:#facc15; font-weight:700;">+${p.reward} 🪙</span>
+        </div>
+      `).join('');
+      modal.style.display = 'flex';
+    });
+
+    // Evento di Reset Completo Mappa
+    socket.on('lobbyReset', (data) => {
+      rocks = data.rocks || [];
+      document.getElementById('podium-modal').style.display = 'none';
+    });
+
     socket.on('state', (state) => {
       gameState = state;
       updateHUD();
@@ -907,7 +973,7 @@
       if (type === 'soul') profile.stats.souls += amount;
       if (type === 'kill') profile.stats.kills += amount;
       if (type === 'boss') profile.stats.bosses += amount;
-      if (type === 'island') profile.stats.islands = (profile.stats.islands || 0) + amount;
+      if (type === 'island' || type === 'podium') profile.stats.islands = (profile.stats.islands || 0) + amount;
 
       const mappedType = (type === 'boss' || type === 'island') ? 'boss_or_island' : type;
 
@@ -1023,19 +1089,69 @@
       }
     });
 
+    // Estrazione Completata dal Portale Verde!
+    socket.on('extracted', ({ level, kills, earnedDoubloons }) => {
+      profile.doubloons += (earnedDoubloons || 50);
+      saveProfile();
+
+      const repEl = document.getElementById('death-report');
+      repEl.style.display = 'block';
+      repEl.style.borderColor = '#22c55e';
+      repEl.style.color = '#bbf7d0';
+      repEl.innerHTML = `🌀 <b>ESTRAZIONE RIUSCITA AL LIVELLO ${level}!</b> (${kills} Affondamenti)<br/>Bottino messo in salvo nel Porto: <b>+${earnedDoubloons} Dobloni 🪙</b>`;
+
+      document.getElementById('overlay').style.display = 'flex';
+      document.getElementById('hud').style.display = 'none';
+    });
+
     socket.on('died', ({ level, kills, earnedDoubloons }) => {
       profile.doubloons += (earnedDoubloons || 0);
       saveProfile();
 
       const repEl = document.getElementById('death-report');
       repEl.style.display = 'block';
-      repEl.innerHTML = `☠️ Vascello affondato al <b>Livello ${level}</b> (${kills} Affondamenti)<br/>Bottino di spedizione: <b>+${earnedDoubloons || 0} Dobloni 🪙</b>`;
+      repEl.style.borderColor = '#dc2626';
+      repEl.style.color = '#fca5a5';
+      repEl.innerHTML = `☠️ Vascello affondato al <b>Livello ${level}</b> (${kills} Affondamenti)<br/>Bottino recuperato: <b>+${earnedDoubloons || 0} Dobloni 🪙</b>`;
 
       document.getElementById('overlay').style.display = 'flex';
       document.getElementById('hud').style.display = 'none';
     });
 
     function updateHUD() {
+      // Aggiorna Timer Lobby & Meteo
+      if (gameState.lobbyState) {
+        const ls = gameState.lobbyState;
+        const remSec = Math.max(0, Math.ceil((ls.matchEndTime - gameState.serverTime) / 1000));
+        const mins = String(Math.floor(remSec / 60)).padStart(2, '0');
+        const secs = String(remSec % 60).padStart(2, '0');
+        const timerEl = document.getElementById('match-timer');
+
+        if (ls.phase === 'eclipse') {
+          timerEl.style.color = '#ef4444';
+          timerEl.innerText = `🌑 ECLISSI 2x: ${mins}:${secs}`;
+        } else if (ls.phase === 'intermission') {
+          const intSec = Math.max(0, Math.ceil((ls.intermissionEndTime - gameState.serverTime) / 1000));
+          document.getElementById('podium-countdown').innerText = `Nuova Mappa e Reset Livelli in ${intSec}s...`;
+        } else {
+          timerEl.style.color = '#5eead4';
+          timerEl.innerText = `⏳ CICLO: ${mins}:${secs}`;
+        }
+
+        const wBadge = document.getElementById('weather-badge');
+        if (ls.weather === 'gale') wBadge.innerText = '🌬️ Venti di Burrasca (+25% Vel)';
+        else if (ls.weather === 'bloodfog') wBadge.innerText = '🌫️ Nebbia di Sangue (+30% Cura Kill)';
+        else wBadge.innerText = '🌊 Mare Calmo';
+
+        // Vignettatura più stretta durante Nebbia di Sangue o Eclissi
+        const vig = document.getElementById('vignette');
+        if (ls.weather === 'bloodfog' || ls.phase === 'eclipse') {
+          vig.style.background = 'radial-gradient(circle at center, transparent 36%, rgba(45, 5, 10, 0.94) 100%)';
+        } else {
+          vig.style.background = 'radial-gradient(circle at center, transparent 55%, rgba(0, 0, 0, 0.88) 100%)';
+        }
+      }
+
       const me = gameState.players[myId];
       if (me) {
         const pct = Math.min(100, (me.xp / me.maxXp) * 100);
@@ -1048,7 +1164,6 @@
           btn.classList.toggle('available', me.skillPoints > 0);
         });
 
-        // Aggiorna i 3 Slot Reliquie con Stelle di Grado (★, ★★, ★★★)
         const keyLabels = ['Z', 'X', 'C'];
         for (let i = 0; i < 3; i++) {
           const slotEl = document.getElementById(`relic-${i}`);
@@ -1071,13 +1186,11 @@
           }
         }
 
-        // Mostra Sinergie di Set attive
         const synEl = document.getElementById('synergy-list');
         synEl.innerHTML = (me.activeSynergies || [])
           .map(s => `<div class="synergy-badge">${s}</div>`)
           .join('');
 
-        // Mostra Popup Scambio Reliquia se i 3 slot sono pieni
         const pendModal = document.getElementById('pending-relic-modal');
         if (me.pendingRelic && gameState.serverTime < me.pendingRelicUntil) {
           pendModal.style.display = 'flex';
@@ -1087,23 +1200,22 @@
           pendModal.style.display = 'none';
         }
 
-        // Slot Consumabile Tattico [Q]
         const consText = document.getElementById('consumable-text');
         if (me.consumable) {
           consText.innerHTML = `${me.consumable.icon} <b>[Q] ${me.consumable.name}</b>`;
         } else {
-          consText.innerText = '📦 [Q] Nessun Oggetto Tattico';
+          consText.innerText = '📦 [Q] Nessun Oggetto';
         }
 
         const repElapsed = gameState.serverTime - me.lastRepair;
         const repRem = Math.max(0, Math.ceil((me.repairCd - repElapsed) / 1000));
         const repTextEl = document.getElementById('repair-text');
         if (me.isRepairing) {
-          repTextEl.innerText = '🛠️ Riparazione in corso...';
+          repTextEl.innerText = '🛠️ Riparazione...';
         } else if (repRem > 0) {
           repTextEl.innerText = `🛠️ [R] Ripara: ${repRem}s`;
         } else {
-          repTextEl.innerText = '🛠️ [R] Ripara Scafo: Pronta';
+          repTextEl.innerText = '🛠️ [R] Ripara: Pronta';
         }
 
         const classModal = document.getElementById('class-modal');
@@ -1116,7 +1228,7 @@
           const rem = Math.max(0, Math.ceil((me.abilityCd - elapsed) / 1000));
           const classLabel = me.shipClass.toUpperCase();
           document.getElementById('ability-text').innerText =
-            rem === 0 ? `⚡ [${classLabel}] Abilità Pronta (E / Click DX)` : `⏳ Ricarica Abilità: ${rem}s`;
+            rem === 0 ? `⚡ [${classLabel}] Pronta (E)` : `⏳ Abilità: ${rem}s`;
         } else {
           abBox.style.display = 'none';
         }
@@ -1164,6 +1276,69 @@
         ctx.stroke();
       });
 
+      ctx.restore();
+    }
+
+    // Disegna il Portale di Estrazione ("Fuga dall'Abisso")
+    function drawExtractionPortal() {
+      const ep = gameState.extractionPortal;
+      if (!ep || !ep.active) return;
+
+      const t = Date.now() * 0.004;
+      ctx.save();
+      ctx.translate(ep.x, ep.y);
+
+      ctx.shadowBlur = 25;
+      ctx.shadowColor = '#22c55e';
+      ctx.strokeStyle = '#4ade80';
+      ctx.fillStyle = 'rgba(34, 197, 94, 0.12)';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(0, 0, ep.radius + Math.sin(t * 2) * 6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      ctx.font = '800 13px Cinzel';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#86efac';
+      ctx.fillText('🌀 PORTALE DI ESTRAZIONE (+50 🪙)', 0, -ep.radius - 16);
+      ctx.restore();
+    }
+
+    // Disegna il Mercante Nero ("Il Traghettatore d'Ossa")
+    function drawBlackMerchant() {
+      const bm = gameState.blackMerchant;
+      if (!bm) return;
+
+      ctx.save();
+      ctx.translate(bm.x, bm.y);
+
+      ctx.strokeStyle = 'rgba(192, 132, 252, 0.35)';
+      ctx.fillStyle = 'rgba(88, 28, 135, 0.1)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(0, 0, bm.radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // Chiatta rituale del Mercante
+      ctx.fillStyle = '#1e1b4b';
+      ctx.strokeStyle = '#c084fc';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(0, 0, 32, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.font = '20px Inter';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('⚖️', 0, 1);
+
+      ctx.font = '800 12px Cinzel';
+      ctx.fillStyle = '#e9d5ff';
+      ctx.fillText('MERCANTE NERO [PREMI F: -32% HP → RELIQUIA]', 0, -48);
       ctx.restore();
     }
 
@@ -1235,7 +1410,6 @@
       ctx.restore();
     }
 
-    // Disegna il Galeone del Tesoro Imperiale
     function drawTreasureGalleon() {
       const tg = gameState.treasureGalleon;
       if (!tg || !tg.active) return;
@@ -1310,7 +1484,6 @@
     function drawRelicsAndConsumables() {
       const t = Date.now() * 0.005;
 
-      // Reliquie Maledette
       (gameState.relics || []).forEach(rel => {
         ctx.save();
         ctx.translate(rel.x, rel.y);
@@ -1340,7 +1513,6 @@
         ctx.restore();
       });
 
-      // Casse Tattiche Consumabili [Q]
       (gameState.consumables || []).forEach(c => {
         ctx.save();
         ctx.translate(c.x, c.y);
@@ -1357,7 +1529,6 @@
         ctx.restore();
       });
 
-      // Mine Abissali piazzate in acqua
       (gameState.seaMines || []).forEach(m => {
         ctx.save();
         ctx.translate(m.x, m.y);
@@ -1551,9 +1722,25 @@
       ctx.save();
       ctx.font = '600 12px Inter';
       ctx.textAlign = 'center';
+
+      // Fumetto Emote [T] sopra la nave
+      if (p.emote) {
+        ctx.font = '700 13px Inter';
+        ctx.fillStyle = '#fef08a';
+        ctx.fillText(p.emote, p.x, p.y - 72);
+      }
+
+      // Barra Estrazione se dentro il Portale Verde
+      if (p.extractProgress && p.extractProgress > 0) {
+        ctx.font = '700 11px Inter';
+        ctx.fillStyle = '#4ade80';
+        ctx.fillText(`🌀 ESTRAZIONE ${Math.floor(p.extractProgress)}%`, p.x, p.y - 68);
+      }
+
+      ctx.font = '600 12px Inter';
       const classTag = p.shipClass ? ` • ${p.shipClass.toUpperCase()}` : '';
       const relicIcons = (p.inventory || []).map(r => `${r.icon}${r.level > 1 ? r.level : ''}`).join(' ');
-      const wantedCrown = p.isMostWanted ? '👑 [TAGLIA +80🪙] ' : '';
+      const wantedCrown = p.isMostWanted ? '👑 [TAGLIA] ' : '';
       ctx.fillStyle = p.isMostWanted ? '#facc15' : (p.id === myId ? skinColor : (p.isBot ? '#c084fc' : '#e2d9c8'));
       ctx.fillText(`${wantedCrown}${p.name} [Lv.${p.level}${classTag}] ${relicIcons}`, p.x, p.y - 54);
 
@@ -1590,6 +1777,8 @@
       }
 
       drawWhirlpools();
+      drawExtractionPortal();
+      drawBlackMerchant();
       drawTreasureIsland();
       drawTreasureGalleon();
 
@@ -1698,6 +1887,32 @@
       ctx.arc((st.x / mapSize) * size, (st.y / mapSize) * size, (st.radius / mapSize) * size, 0, Math.PI * 2);
       ctx.stroke();
 
+      // Portale di Estrazione Verde sulla Minimappa
+      if (gameState.extractionPortal && gameState.extractionPortal.active) {
+        ctx.strokeStyle = '#4ade80';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(
+          (gameState.extractionPortal.x / mapSize) * size,
+          (gameState.extractionPortal.y / mapSize) * size,
+          4.5,
+          0,
+          Math.PI * 2
+        );
+        ctx.stroke();
+      }
+
+      // Mercante Nero Viola sulla Minimappa
+      if (gameState.blackMerchant) {
+        ctx.fillStyle = '#e879f9';
+        ctx.fillRect(
+          (gameState.blackMerchant.x / mapSize) * size - 2.5,
+          (gameState.blackMerchant.y / mapSize) * size - 2.5,
+          5,
+          5
+        );
+      }
+
       if (gameState.treasureIsland && gameState.treasureIsland.active) {
         ctx.strokeStyle = '#facc15';
         ctx.lineWidth = 1.5;
@@ -1712,7 +1927,6 @@
         ctx.stroke();
       }
 
-      // Icona Galeone del Tesoro Imperiale sulla Minimappa
       if (gameState.treasureGalleon && gameState.treasureGalleon.active) {
         ctx.fillStyle = '#fde047';
         ctx.fillRect(
