@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Abyssal Sails .io - Dark Fantasy Pirate Royale v1.0.1</title>
+  <title>Abyssal Sails .io - Dark Fantasy Pirate Royale v1.1</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Inter:wght@400;500;600;700&display=swap');
 
@@ -191,7 +191,7 @@
     .buy-upg-btn:disabled { opacity: 0.38; border-color: #475569; color: #94a3b8; cursor: not-allowed; }
 
     /* =====================================================
-       HUD IN PARTITA + MINIMAPPA NITIDA SOPRA VIGNETTE
+       HUD IN PARTITA + MINIMAPPA + KILLFEED
        ===================================================== */
     #hud { position: fixed; inset: 0; pointer-events: none; z-index: 10; display: none; }
     #minimapCanvas {
@@ -209,6 +209,15 @@
     #leaderboard h3 { font-family: 'Cinzel', serif; font-size: 0.9rem; color: #c8b69e; margin-bottom: 8px; border-bottom: 1px solid #2c2520; padding-bottom: 4px; }
     .lb-row { display: flex; justify-content: space-between; font-size: 0.81rem; margin: 4px 0; color: #94a3b8; }
     .lb-row.me { color: #2dd4bf; font-weight: 600; }
+
+    #killfeed {
+      position: absolute; top: 185px; right: 16px; width: 245px;
+      display: flex; flex-direction: column; gap: 5px; align-items: flex-end;
+    }
+    .kf-item {
+      background: rgba(10, 14, 20, 0.85); border-right: 3px solid #f43f5e;
+      padding: 5px 10px; border-radius: 4px; font-size: 0.74rem; color: #e2e8f0;
+    }
 
     #relics-panel {
       position: absolute; top: 175px; left: 16px;
@@ -267,6 +276,7 @@
       padding: 6px 13px; border-radius: 20px; font-size: 0.78rem; color: #e2e8f0;
     }
     #lantern-box { border-color: #fde047; color: #fef08a; }
+    #harpoon-box { border-color: #38bdf8; color: #bae6fd; }
     #consumable-box { border-color: #f97316; color: #fed7aa; box-shadow: 0 0 12px rgba(249, 115, 22, 0.2); }
     #ability-box { display: none; border-color: #a855f7; color: #e9d5ff; box-shadow: 0 0 15px rgba(168, 85, 247, 0.3); }
     #repair-box { border-color: #22c55e; color: #bbf7d0; box-shadow: 0 0 12px rgba(34, 197, 94, 0.2); }
@@ -316,14 +326,14 @@
     <p id="toast-desc">Hai riscosso Dobloni Abissali</p>
   </div>
 
-  <!-- HOME PAGE - DASHBOARD ("IL PORTO MALEDETTO" v1.0.1) -->
+  <!-- HOME PAGE - DASHBOARD ("IL PORTO MALEDETTO" v1.1) -->
   <div id="overlay">
     <div class="dashboard-wrap">
 
       <div class="dash-header">
         <div class="brand-title">
           <h1>ABYSSAL SAILS</h1>
-          <span>IL PORTO MALEDETTO • PATCH v1.0.1: COMPETITIVE TUNING</span>
+          <span>IL PORTO MALEDETTO • BUILD v1.1: ARPIONI & BARILI ESPLOSIVI</span>
         </div>
         <div class="captain-badges">
           <button class="sound-btn" id="soundToggleBtn" onclick="toggleSound()">🔊 Audio: ON</button>
@@ -380,9 +390,9 @@
           <button id="playBtn">SALPA NELL'ABISSO</button>
 
           <div class="controls-mini">
-            <span>W/S/A/D</span> Manovra • <span>SPAZIO / CLICK SX</span> Bordate • <span>L</span> Lanterna (-10% Vel, +25% Imboscata)<br/>
-            <span>Q</span> Oggetto Tattico • <span>R</span> Ripara • <span>E / CLICK DX</span> Abilità • <span>F</span> Mercante • <span>T</span> Emote<br/>
-            <span>⚖️ Patch v1.0.1:</span> Cap 5/5 agli upgrade in partita, Juggernaut immune agli slow in carica!
+            <span>W/S/A/D</span> Manovra • <span>SPAZIO / CLICK SX</span> Bordate • <span>V</span> Arpione a Prua (Tira nemici o Rampino su Scogli!)<br/>
+            <span>L</span> Lanterna (Max 8s buio, 6s CD) • <span>Q</span> Oggetto • <span>R</span> Ripara • <span>E / CLICK DX</span> Abilità • <span>F</span> Mercante<br/>
+            <span>🧨 Barili Rossi:</span> Sparagli contro per farli esplodere (105 Danni ad area)!
           </div>
         </div>
 
@@ -406,6 +416,8 @@
       <h3>TERRORE DEI MARI</h3>
       <div id="lb-list"></div>
     </div>
+
+    <div id="killfeed"></div>
 
     <div id="relics-panel">
       <div class="relic-slot" id="relic-0" onclick="swapRelic(0)">🏺 [Z] Slot Reliquia Vuoto</div>
@@ -448,6 +460,9 @@
         <div id="lantern-box" class="pill-box" onclick="socket.emit('toggleLantern')">
           <span id="lantern-text">🔦 [L] Lanterna: ON</span>
         </div>
+        <div id="harpoon-box" class="pill-box" onclick="socket.emit('useHarpoon')">
+          <span id="harpoon-text">🪝 [V] Arpione: Pronto</span>
+        </div>
         <div id="consumable-box" class="pill-box" onclick="socket.emit('useConsumable')">
           <span id="consumable-text">📦 [Q] Nessun Oggetto</span>
         </div>
@@ -485,6 +500,7 @@
     const SPRITE_ANGLE_OFFSET = 0;
     const MAX_PARTICLES = 150;
     const MAX_WAKES = 85;
+    const STEALTH_MAX_DURATION_MS = 8000;
 
     // =========================================================
     // SINTETIZZATORE AUDIO WEBAUDIO
@@ -783,7 +799,7 @@
     renderDashboardUI();
 
     // =========================================================
-    // ENGINE DI GIOCO OTTIMIZZATO (v1.0.1)
+    // ENGINE DI GIOCO OTTIMIZZATO (v1.1)
     // =========================================================
     let myId = null;
     let mapSize = 4000;
@@ -795,6 +811,7 @@
       relics: [],
       consumables: [],
       seaMines: [],
+      barrels: [],
       storm: { x: 2000, y: 2000, radius: 2500 },
       boss: { x: 2000, y: 2000, hp: 2800, maxHp: 2800, radius: 82, alive: true, enraged: false, angle: 0 },
       treasureIsland: { active: false, x: 1200, y: 1200, radius: 190, progress: 0 },
@@ -812,6 +829,7 @@
     let wakes = [];
     let dmgNumbers = [];
     let lightningBolts = [];
+    let killfeedItems = [];
     let myLastShotClient = 0;
     let camera = { x: 2000, y: 2000, shake: 0 };
 
@@ -965,6 +983,7 @@
       if (e.repeat) return;
       const k = e.key.toLowerCase();
       if (e.code === 'Space') socket.emit('shoot');
+      if (k === 'v') socket.emit('useHarpoon');
       if (k === 'e' || k === 'shift') socket.emit('useAbility');
       if (k === 'q') socket.emit('useConsumable');
       if (k === 'l') socket.emit('toggleLantern');
@@ -987,6 +1006,7 @@
     window.addEventListener('mousedown', (e) => {
       if (document.getElementById('overlay').style.display === 'none') {
         if (e.button === 0) socket.emit('shoot');
+        if (e.button === 1) { e.preventDefault(); socket.emit('useHarpoon'); }
         if (e.button === 2) socket.emit('useAbility');
       }
     });
@@ -1028,6 +1048,39 @@
       if (now - lastHudUpdate > 160) {
         lastHudUpdate = now;
         updateHUD();
+      }
+    });
+
+    socket.on('killfeed', ({ killer, victim, weapon }) => {
+      killfeedItems.unshift({ text: `<b>${killer}</b> [${weapon}] ☠️ ${victim}`, time: Date.now() });
+      if (killfeedItems.length > 4) killfeedItems.pop();
+      renderKillfeed();
+    });
+
+    function renderKillfeed() {
+      const now = Date.now();
+      killfeedItems = killfeedItems.filter(k => now - k.time < 6000);
+      document.getElementById('killfeed').innerHTML = killfeedItems
+        .map(k => `<div class="kf-item">${k.text}</div>`)
+        .join('');
+    }
+
+    socket.on('barrelExploded', ({ x, y }) => {
+      if (!isInView(x, y, 300)) return;
+      playCannonSound();
+      camera.shake = Math.max(camera.shake, 14);
+      for (let i = 0; i < 28; i++) {
+        const a = (Math.PI * 2 * i) / 28;
+        const spd = Math.random() * 8 + 3;
+        addParticle({
+          x, y,
+          vx: Math.cos(a) * spd,
+          vy: Math.sin(a) * spd,
+          size: Math.random() * 8 + 4,
+          alpha: 1,
+          decay: 0.025,
+          color: i % 2 === 0 ? '#f97316' : '#ef4444'
+        });
       }
     });
 
@@ -1204,6 +1257,7 @@
     }
 
     function updateHUD() {
+      renderKillfeed();
       const me = gameState.players[myId];
 
       if (gameState.lobbyState) {
@@ -1246,7 +1300,6 @@
           `Liv. ${me.level} | Anime: ${me.xp}/${me.maxXp} | 🪙 ${profile.doubloons}` +
           (me.skillPoints > 0 ? ` (+${me.skillPoints} Punti!)` : '');
 
-        // PATCH v1.0.1: Mostra livello corrente (0/5 .. MAX) sui 4 pulsanti di upgrade
         const upgDefs = [
           { key: 'hull', id: 'upg-hull', num: 1, label: 'Scafo' },
           { key: 'cannons', id: 'upg-cannons', num: 2, label: 'Cannoni' },
@@ -1262,17 +1315,23 @@
           el.classList.toggle('maxed', isMax);
         });
 
-        // Bottone Lanterna [L] con timer di blocco se rivelato
+        // Bottone Lanterna [L] con Countdown Furtività (8s) e Cooldown Ricarica (6s)
         const lantBox = document.getElementById('lantern-box');
         const lantTxt = document.getElementById('lantern-text');
         const lockRem = Math.max(0, Math.ceil(((me.lanternLockUntil || 0) - gameState.serverTime) / 1000));
         if (me.lanternOn) {
           lantBox.style.borderColor = lockRem > 0 ? '#f87171' : '#fde047';
-          lantTxt.innerText = lockRem > 0 ? `🔦 [L] Rivelato (${lockRem}s)` : '🔦 [L] Lanterna: ON';
+          lantTxt.innerText = lockRem > 0 ? `🔦 [L] Ricarica: ${lockRem}s` : '🔦 [L] Lanterna: ON';
         } else {
+          const stealthRem = Math.max(0, Math.ceil((STEALTH_MAX_DURATION_MS - (gameState.serverTime - me.stealthSince)) / 1000));
           lantBox.style.borderColor = '#94a3b8';
-          lantTxt.innerText = '🌑 [L] Furtivo (-10% Vel)';
+          lantTxt.innerText = `🌑 [L] Buio: ${stealthRem}s`;
         }
+
+        // Bottone Arpione [V]
+        const harpRem = Math.max(0, Math.ceil(((me.harpoonCd || 10000) - (gameState.serverTime - (me.lastHarpoon || 0))) / 1000));
+        document.getElementById('harpoon-text').innerText =
+          harpRem > 0 ? `🪝 [V] Arpione: ${harpRem}s` : '🪝 [V] Arpione: Pronto';
 
         const keyLabels = ['Z', 'X', 'C'];
         for (let i = 0; i < 3; i++) {
@@ -1387,6 +1446,46 @@
       });
 
       ctx.restore();
+    }
+
+    // Disegna Indicatori Bussola attorno al tuo vascello per gli Eventi fuori schermo
+    function drawEventCompassPointers() {
+      const me = renderPlayers[myId];
+      if (!me) return;
+
+      const targets = [];
+      if (gameState.treasureIsland && gameState.treasureIsland.active) {
+        targets.push({ x: gameState.treasureIsland.x, y: gameState.treasureIsland.y, icon: '🏝️', color: '#facc15' });
+      }
+      if (gameState.extractionPortal && gameState.extractionPortal.active) {
+        targets.push({ x: gameState.extractionPortal.x, y: gameState.extractionPortal.y, icon: '🌀', color: '#4ade80' });
+      }
+      if (gameState.treasureGalleon && gameState.treasureGalleon.active) {
+        targets.push({ x: gameState.treasureGalleon.x, y: gameState.treasureGalleon.y, icon: '🚢', color: '#fde047' });
+      }
+
+      targets.forEach(t => {
+        if (isInView(t.x, t.y, -40)) return; // Già visibile a schermo
+        const ang = Math.atan2(t.y - me.y, t.x - me.x);
+        const px = me.x + Math.cos(ang) * 190;
+        const py = me.y + Math.sin(ang) * 190;
+
+        ctx.save();
+        ctx.translate(px, py);
+        ctx.fillStyle = 'rgba(10, 15, 24, 0.85)';
+        ctx.strokeStyle = t.color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(0, 0, 15, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.font = '13px Inter';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(t.icon, 0, 1);
+        ctx.restore();
+      });
     }
 
     function drawExtractionPortal() {
@@ -1585,8 +1684,28 @@
       }
     }
 
-    function drawRelicsAndConsumables() {
+    function drawRelicsConsumablesAndBarrels() {
       const t = Date.now() * 0.005;
+
+      // Barili Rossi di Polvere Nera Esplosivi
+      (gameState.barrels || []).forEach(br => {
+        if (!isInView(br.x, br.y, 50)) return;
+        ctx.save();
+        ctx.translate(br.x, br.y);
+        ctx.fillStyle = '#7f1d1d';
+        ctx.strokeStyle = '#f97316';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.arc(0, 0, br.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.font = '15px Inter';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('🧨', 0, 1);
+        ctx.restore();
+      });
 
       (gameState.relics || []).forEach(rel => {
         if (!isInView(rel.x, rel.y, 60)) return;
@@ -1994,17 +2113,27 @@
         ctx.fill();
       }
 
-      drawRelicsAndConsumables();
+      drawRelicsConsumablesAndBarrels();
       drawRocks();
       drawBoss();
       Object.values(gameState.players).forEach(drawShip);
       drawLightningBolts();
 
+      // Palle di cannone + Catena dell'Arpione [V]
       for (let b of gameState.bullets) {
-        if (!isInView(b.x, b.y, 30)) continue;
+        if (!isInView(b.x, b.y, 60)) continue;
+        if (b.isHarpoon && renderPlayers[b.ownerId]) {
+          const own = renderPlayers[b.ownerId];
+          ctx.strokeStyle = 'rgba(250, 204, 21, 0.55)';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(own.x, own.y);
+          ctx.lineTo(b.x, b.y);
+          ctx.stroke();
+        }
         ctx.fillStyle = b.color || '#ccfbf1';
         ctx.beginPath();
-        ctx.arc(b.x, b.y, b.isBossBullet ? 7.5 : (b.homing ? 6.5 : 4.5), 0, Math.PI * 2);
+        ctx.arc(b.x, b.y, b.isBossBullet ? 7.5 : (b.isHarpoon ? 6 : (b.homing ? 6.5 : 4.5)), 0, Math.PI * 2);
         ctx.fill();
       }
 
@@ -2035,6 +2164,8 @@
         ctx.fillText(dn.text, dn.x, dn.y);
         ctx.globalAlpha = 1;
       }
+
+      drawEventCompassPointers();
 
       const st = gameState.storm;
       ctx.strokeStyle = 'rgba(220, 38, 38, 0.8)';

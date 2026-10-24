@@ -14,9 +14,14 @@ const TICK_RATE = 30;
 const MAX_SOULS = 110;
 const ROCK_COUNT = 18;
 const MAX_CONSUMABLES = 10;
+const MAX_BARRELS = 12;
 
 const MATCH_DURATION_MS = 6 * 60 * 1000;
 const INTERMISSION_MS = 10 * 1000;
+
+// Costanti Bilanciamento Lanterna Furtiva [L]
+const STEALTH_MAX_DURATION_MS = 8000; // Max 8 secondi continui al buio
+const LANTERN_COOLDOWN_MS = 6000;     // 6 secondi di ricarica dopo ogni riaccensione
 
 let players = {};
 let bullets = [];
@@ -25,6 +30,7 @@ let rocks = [];
 let relics = [];
 let consumables = [];
 let seaMines = [];
+let barrels = []; // Barili rossi esplosivi ambientali
 
 let botRespawnCooldownUntil = 0;
 
@@ -173,6 +179,58 @@ function spawnConsumable() {
   });
 }
 
+function spawnBarrel() {
+  const a = Math.random() * Math.PI * 2;
+  const r = 300 + Math.random() * Math.max(300, storm.radius * 0.78);
+  barrels.push({
+    id: Math.random().toString(36).substr(2, 6),
+    x: Math.round(storm.x + Math.cos(a) * r),
+    y: Math.round(storm.y + Math.sin(a) * r),
+    radius: 22
+  });
+}
+
+function triggerBarrelExplosion(barrel, attackerId) {
+  const bx = barrel.x;
+  const by = barrel.y;
+  const blastRadius = 175;
+  const blastDmg = 105;
+
+  io.emit('barrelExploded', { x: bx, y: by });
+
+  for (let id in players) {
+    const t = players[id];
+    const d = Math.hypot(t.x - bx, t.y - by);
+    if (d <= blastRadius) {
+      t.hp -= blastDmg;
+      revealShipLantern(t, Date.now());
+      if (t.isRepairing) interruptRepair(t, 'Esplosione Barile!');
+      emitDamageNumber(t.x, t.y - 20, blastDmg, '#f97316', '🧨 ');
+
+      // Spinta d'onda d'urto
+      if (d > 1) {
+        t.x += ((t.x - bx) / d) * 45;
+        t.y += ((t.y - by) / d) * 45;
+      }
+
+      if (t.hp <= 0 && attackerId && players[attackerId] && attackerId !== id) {
+        const killer = players[attackerId];
+        killer.kills++;
+        killer.xp += 85;
+        io.emit('killfeed', { killer: killer.name, victim: t.name, weapon: '🧨 Barile Esplosivo' });
+        if (!killer.isBot) {
+          io.to(killer.id).emit('questEvent', { type: 'kill', amount: 1, doubloons: 15 });
+        }
+      }
+    }
+  }
+
+  if (boss.alive && Math.hypot(boss.x - bx, boss.y - by) <= blastRadius + boss.radius) {
+    boss.hp -= blastDmg;
+    emitDamageNumber(boss.x, boss.y - 20, blastDmg, '#f97316', '🧨 ');
+  }
+}
+
 function spawnRelicDrop(x, y, forceMythic = false) {
   const template = forceMythic
     ? BOSS_MYTHIC_RELIC
@@ -227,7 +285,6 @@ function findBestSpawnPosition() {
 function createShip(id, name, isBot = false, meta = {}, isElite = false) {
   const spawnPos = findBestSpawnPosition();
 
-  // PATCH v1.0.1: Scaling Arsenale del Porto ammorbidito (+25-30% max vantaggio invece di +70%)
   const hullLv = Math.min(10, Math.max(0, Number(meta.hullLv) || 0));
   const cannonLv = Math.min(10, Math.max(0, Number(meta.cannonLv) || 0));
   const sailLv = Math.min(10, Math.max(0, Number(meta.sailLv) || 0));
@@ -269,11 +326,13 @@ function createShip(id, name, isBot = false, meta = {}, isElite = false) {
     kills: 0,
     soulsCollected: 0,
     isMostWanted: false,
-    // Sistema Lanterna Furtiva [L] con blocco post-combattimento di 5s
+    // Sistema Lanterna Furtiva [L] Corretto (Durata Max 8s + Cooldown 6s a ogni riaccensione)
     lanternOn: true,
     stealthSince: 0,
     lanternLockUntil: 0,
-    // Effetti Elettrici separati (Abilità [E] vs Colpo Base)
+    // Arpione Abissale a Prua [V]
+    lastHarpoon: 0,
+    harpoonCd: 10000,
     shockedUntil: 0,
     miniShockUntil: 0,
     extractProgress: 0,
@@ -313,6 +372,13 @@ function createShip(id, name, isBot = false, meta = {}, isElite = false) {
   }
 
   return ship;
+}
+
+// Funzione centralizzata per riaccendere la lanterna e applicare SEMPRE il cooldown di 6s
+function revealShipLantern(ship, now) {
+  ship.lanternOn = true;
+  ship.stealthSince = 0;
+  ship.lanternLockUntil = Math.max(ship.lanternLockUntil || 0, now + LANTERN_COOLDOWN_MS);
 }
 
 function getTargetBotCount() {
@@ -368,14 +434,10 @@ function manageBotPopulation(now) {
   }
 }
 
-// =========================================================
-// SISTEMA DI RESET DELLA LOBBY & PODIO BILANCIATO
-// =========================================================
 function triggerLobbyIntermission() {
   lobbyState.phase = 'intermission';
   lobbyState.intermissionEndTime = Date.now() + INTERMISSION_MS;
 
-  // PATCH v1.0.1: Il Podio premia molto di più le Uccisioni (120 pt) rispetto al solo Livello (65 pt)
   const sorted = Object.values(players).sort(
     (a, b) => (b.level * 65 + b.kills * 120) - (a.level * 65 + a.kills * 120)
   );
@@ -418,10 +480,12 @@ function resetEntireLobby() {
   seaMines = [];
   souls = [];
   consumables = [];
+  barrels = [];
 
   generateMapRocks();
   for (let i = 0; i < MAX_SOULS; i++) spawnSoul();
   for (let i = 0; i < MAX_CONSUMABLES; i++) spawnConsumable();
+  for (let i = 0; i < MAX_BARRELS; i++) spawnBarrel();
 
   extractionPortal.active = false;
   extractionPortal.nextSpawnTime = now + 45000;
@@ -452,11 +516,12 @@ function resetEntireLobby() {
 generateMapRocks();
 for (let i = 0; i < MAX_SOULS; i++) spawnSoul();
 for (let i = 0; i < MAX_CONSUMABLES; i++) spawnConsumable();
+for (let i = 0; i < MAX_BARRELS; i++) spawnBarrel();
 
 function recalculateShipStats(p) {
   let maxHp = p.baseMaxHp + (p.level - 1) * 12 + p.statUpgrades.hull * 28;
   let dmg = p.baseDamage + p.statUpgrades.cannons * 4.5;
-  let maxSpd = p.baseMaxSpeed + p.statUpgrades.sails * 0.45; // Ridotto a +0.45 (Max 5/5) per evitare velocità eccessive
+  let maxSpd = p.baseMaxSpeed + p.statUpgrades.sails * 0.45;
   let turnSpd = p.baseTurnSpeed + p.statUpgrades.sails * 0.0035;
   let reload = Math.max(420, p.baseReloadTime - p.statUpgrades.reload * 130);
   let lifesteal = 0;
@@ -520,7 +585,6 @@ function recalculateShipStats(p) {
   p.maxSpeed = maxSpd;
   p.turnSpeed = turnSpd;
   p.reloadTime = Math.max(360, Math.round(reload));
-  // PATCH v1.0.1: Hard Cap al Rubavita al 60% e Corazza al 65%
   p.lifestealBonus = Math.min(0.60, lifesteal);
   p.armorBonus = Math.min(0.65, armor);
   p.activeSynergies = synergies;
@@ -614,16 +678,14 @@ function fireBroadsides(ship) {
 
   if (ship.isRepairing) interruptRepair(ship);
 
-  // PATCH v1.0.1: Sparare rivela la nave e blocca il ritorno in Furtività [L] per 5 secondi!
-  ship.lanternLockUntil = now + 5000;
   let ambushMult = 1.0;
   if (!ship.lanternOn) {
-    ship.lanternOn = true;
     if (now - ship.stealthSince >= 2000) {
       ambushMult = 1.25;
       io.emit('dmgNum', { x: Math.round(ship.x), y: Math.round(ship.y - 42), text: '🎯 IMBOSCATA (+25% DANNO)!', color: '#facc15' });
     }
   }
+  revealShipLantern(ship, now);
 
   const isHellfire = ship.hellfireCharged;
   ship.hellfireCharged = false;
@@ -636,7 +698,6 @@ function fireBroadsides(ship) {
   const weatherSpdBonus = lobbyState.weather === 'gale' ? 2.0 : 0;
   const bulletSpeed = (ship.inventory.some(r => r.id === 'powder') ? 15.5 : 13.5) + weatherSpdBonus;
 
-  // PATCH v1.0.1: Ogni palla della salva a 5 colpi del Negromante infligge l'80% del danno singolo (totale 400% invece di 500%)
   const necroBroadsideBalance = ship.shipClass === 'necromancer' ? 0.80 : 1.0;
   const dmgMult = (isHellfire ? 1.45 : 1.0) * ambushMult * necroBroadsideBalance;
 
@@ -647,6 +708,7 @@ function fireBroadsides(ship) {
         ownerId: ship.id,
         isBossBullet: false,
         homing: false,
+        isHarpoon: false,
         shockOnHit: ship.shipClass === 'stormcaller',
         lifestealRatio: ship.lifestealBonus,
         x: Math.round(ship.x + Math.cos(fireAngle) * 30),
@@ -661,6 +723,34 @@ function fireBroadsides(ship) {
   });
 
   io.emit('cannonFired', { x: Math.round(ship.x), y: Math.round(ship.y), id: ship.id });
+}
+
+// NUOVA MECCANICA v1.1: Arpione Abissale a Prua [V]
+function fireHarpoon(ship) {
+  if (lobbyState.phase === 'intermission') return;
+  const now = Date.now();
+  if (now - ship.lastHarpoon < ship.harpoonCd) return;
+  ship.lastHarpoon = now;
+
+  revealShipLantern(ship, now);
+
+  const speed = 21;
+  bullets.push({
+    ownerId: ship.id,
+    isBossBullet: false,
+    homing: false,
+    isHarpoon: true,
+    lifestealRatio: 0,
+    x: Math.round(ship.x + Math.cos(ship.angle) * 38),
+    y: Math.round(ship.y + Math.sin(ship.angle) * 38),
+    vx: Math.cos(ship.angle) * speed,
+    vy: Math.sin(ship.angle) * speed,
+    damage: 22,
+    color: '#fde047',
+    life: 24 // ~500px di gittata dritta a prua
+  });
+
+  io.emit('dmgNum', { x: Math.round(ship.x), y: Math.round(ship.y - 30), text: '🪝 Arpione!', color: '#fde047' });
 }
 
 function useConsumableItem(ship) {
@@ -718,7 +808,6 @@ function activateAbility(ship) {
   ship.lastAbility = now;
 
   if (ship.shipClass === 'juggernaut') {
-    // PATCH v1.0.1: Carica del Juggernaut rimuove qualsiasi rallentamento elettrico attivo!
     ship.activeBuffUntil = now + 1800;
     ship.shockedUntil = 0;
     ship.miniShockUntil = 0;
@@ -735,6 +824,7 @@ function activateAbility(ship) {
         ownerId: ship.id,
         isBossBullet: false,
         homing: true,
+        isHarpoon: false,
         lifestealRatio: Math.min(0.60, 0.50 + ship.lifestealBonus),
         x: Math.round(ship.x + Math.cos(a) * 36),
         y: Math.round(ship.y + Math.sin(a) * 36),
@@ -756,12 +846,10 @@ function activateAbility(ship) {
       const t = players[id];
       if (Math.hypot(t.x - ship.x, t.y - ship.y) <= 370 && zappedTargets.length < 4) {
         t.hp -= zapDmg;
-        // Se il bersaglio è un Juggernaut in carica, non viene paralizzato
         if (!(t.shipClass === 'juggernaut' && now < t.activeBuffUntil)) {
           t.shockedUntil = now + 2200;
         }
-        t.lanternOn = true;
-        t.lanternLockUntil = now + 5000;
+        revealShipLantern(t, now);
         if (t.isRepairing) interruptRepair(t, 'Folgorato!');
         emitDamageNumber(t.x, t.y - 20, zapDmg, '#38bdf8', '⚡ ');
         zappedTargets.push({ x: Math.round(t.x), y: Math.round(t.y) });
@@ -769,6 +857,7 @@ function activateAbility(ship) {
         if (t.hp <= 0 && !ship.isBot) {
           ship.kills++;
           ship.xp += 80;
+          io.emit('killfeed', { killer: ship.name, victim: t.name, weapon: '⚡ Catena di Fulmini' });
           io.to(ship.id).emit('questEvent', { type: 'kill', amount: 1, doubloons: 12 });
         }
       }
@@ -834,6 +923,10 @@ io.on('connection', (socket) => {
     if (players[socket.id]) fireBroadsides(players[socket.id]);
   });
 
+  socket.on('useHarpoon', () => {
+    if (players[socket.id]) fireHarpoon(players[socket.id]);
+  });
+
   socket.on('useAbility', () => {
     if (players[socket.id]) activateAbility(players[socket.id]);
   });
@@ -842,29 +935,43 @@ io.on('connection', (socket) => {
     if (players[socket.id]) useConsumableItem(players[socket.id]);
   });
 
-  // PATCH v1.0.1: Impedisce di spegnere la lanterna se sei stato rivelato in combattimento negli ultimi 5s
+  // FIX DEFINITIVO LANTERNA [L]:
+  // - Spegnere la lanterna richiede che il cooldown di 6s sia terminato
+  // - Riaccendere manualmente la lanterna attiva SEMPRE i 6s di cooldown prima di poterla rispegnere!
   socket.on('toggleLantern', () => {
     const p = players[socket.id];
     if (!p) return;
     const now = Date.now();
-    if (p.lanternOn && now < p.lanternLockUntil) {
-      const rem = Math.ceil((p.lanternLockUntil - now) / 1000);
-      io.to(p.id).emit('dmgNum', {
+
+    if (p.lanternOn) {
+      if (now < p.lanternLockUntil) {
+        const rem = Math.ceil((p.lanternLockUntil - now) / 1000);
+        io.to(p.id).emit('dmgNum', {
+          x: Math.round(p.x),
+          y: Math.round(p.y - 32),
+          text: `⏳ Ricarica Lanterna: ${rem}s`,
+          color: '#f87171'
+        });
+        return;
+      }
+      p.lanternOn = false;
+      p.stealthSince = now;
+      io.emit('dmgNum', {
         x: Math.round(p.x),
         y: Math.round(p.y - 32),
-        text: `⏳ Rivelato! Attendi ${rem}s`,
-        color: '#f87171'
+        text: '🌑 Furtività Attiva (Max 8s)',
+        color: '#94a3b8'
       });
-      return;
+    } else {
+      // Riaccensione manuale -> Applica il cooldown di 6 secondi!
+      revealShipLantern(p, now);
+      io.emit('dmgNum', {
+        x: Math.round(p.x),
+        y: Math.round(p.y - 32),
+        text: '🔦 Lanterna Accesa (6s Ricarica)',
+        color: '#fde047'
+      });
     }
-    p.lanternOn = !p.lanternOn;
-    p.stealthSince = p.lanternOn ? 0 : now;
-    io.emit('dmgNum', {
-      x: Math.round(p.x),
-      y: Math.round(p.y - 32),
-      text: p.lanternOn ? '🔦 Lanterna Accesa' : '🌑 Furtività (-10% Vel)',
-      color: p.lanternOn ? '#fde047' : '#94a3b8'
-    });
   });
 
   socket.on('useMerchant', () => {
@@ -898,7 +1005,6 @@ io.on('connection', (socket) => {
     if (players[socket.id]) applyClassEvolution(players[socket.id], chosenClass);
   });
 
-  // PATCH v1.0.1: Tetto massimo di 5/5 punti per ciascuna delle 4 statistiche in partita
   socket.on('upgradeStat', (stat) => {
     const p = players[socket.id];
     if (!p || p.skillPoints <= 0) return;
@@ -1010,6 +1116,7 @@ setInterval(() => {
       relics,
       consumables,
       seaMines,
+      barrels,
       storm,
       boss,
       treasureIsland,
@@ -1131,7 +1238,6 @@ setInterval(() => {
       color: '#facc15'
     });
   } else if (treasureIsland.active) {
-    // PATCH v1.0.1: Le Fregate Spettrali intangibili (Velo Ombra attivo) non possono catturare o contestare l'isola
     const shipsInside = Object.values(players).filter(
       p => Math.hypot(p.x - treasureIsland.x, p.y - treasureIsland.y) < treasureIsland.radius &&
            !(p.shipClass === 'phantom' && now < p.activeBuffUntil)
@@ -1196,8 +1302,7 @@ setInterval(() => {
       const target = players[id];
       if (Math.hypot(target.x - m.x, target.y - m.y) < m.radius + 32) {
         target.hp -= m.damage;
-        target.lanternOn = true;
-        target.lanternLockUntil = now + 5000;
+        revealShipLantern(target, now);
         if (target.isRepairing) interruptRepair(target, 'Esplosione Mina!');
         emitDamageNumber(target.x, target.y, m.damage, '#f97316', '💥 ');
         io.emit('hitEffect', { x: m.x, y: m.y });
@@ -1235,6 +1340,7 @@ setInterval(() => {
             ownerId: 'boss',
             isBossBullet: true,
             homing: false,
+            isHarpoon: false,
             x: Math.round(boss.x + Math.cos(a) * 70),
             y: Math.round(boss.y + Math.sin(a) * 70),
             vx: Math.cos(a) * speed,
@@ -1265,6 +1371,17 @@ setInterval(() => {
     if (p.pendingRelic && now > p.pendingRelicUntil) p.pendingRelic = null;
     if (p.emote && now > p.emoteUntil) p.emote = null;
 
+    // FIX v1.1: Scadenza automatica della Furtività dopo 8 secondi continui al buio!
+    if (!p.lanternOn && now - p.stealthSince >= STEALTH_MAX_DURATION_MS) {
+      revealShipLantern(p, now);
+      io.emit('dmgNum', {
+        x: Math.round(p.x),
+        y: Math.round(p.y - 32),
+        text: '🔦 Olio d\'Ombra Esaurito (6s Ricarica)',
+        color: '#fde047'
+      });
+    }
+
     const isBuffActive = now < p.activeBuffUntil;
     const isNitroActive = now < p.nitroUntil;
     const isJuggernautCharging = p.shipClass === 'juggernaut' && isBuffActive;
@@ -1281,7 +1398,6 @@ setInterval(() => {
       }
     }
 
-    // PATCH v1.0.1: Il Portale di Estrazione va in pausa se lo Spettrale è intangibile (Velo Ombra attivo)
     if (!p.isBot && extractionPortal.active) {
       const distPortal = Math.hypot(p.x - extractionPortal.x, p.y - extractionPortal.y);
       if (distPortal < extractionPortal.radius) {
@@ -1328,7 +1444,6 @@ setInterval(() => {
         if (Math.hypot(enemy.x - p.x, enemy.y - p.y) < 260) {
           const drain = 12;
           enemy.hp -= drain;
-          // Il Juggernaut in carica ignora il rallentamento del Negromante
           if (!(enemy.shipClass === 'juggernaut' && now < enemy.activeBuffUntil)) {
             enemy.speed *= 0.68;
           }
@@ -1344,9 +1459,7 @@ setInterval(() => {
     if (isJuggernautCharging) speedMult *= 1.85;
     if (isNitroActive) speedMult = Math.max(speedMult, 1.55);
     if (p.isRepairing) speedMult *= 0.65;
-    // PATCH v1.0.1: Navigare al buio a Lanterna Spenta [L] riduce del 10% la velocità
     if (!p.lanternOn) speedMult *= 0.90;
-    // PATCH v1.0.1: Separazione tra Paralisi Abilità [E] (-55% vel) e Micro-Scossa Colpo Base (-18% vel)
     if (isShocked) speedMult *= 0.45;
     else if (isMiniShocked) speedMult *= 0.82;
 
@@ -1394,8 +1507,7 @@ setInterval(() => {
         if (now > p.ramCooldownUntil && Math.abs(p.speed) > 3.5) {
           const ramDmg = isJuggernautCharging ? 58 : (p.shipClass === 'juggernaut' ? 30 : 10);
           other.hp -= ramDmg;
-          other.lanternOn = true;
-          other.lanternLockUntil = now + 5000;
+          revealShipLantern(other, now);
           if (other.isRepairing) interruptRepair(other);
           p.ramCooldownUntil = now + 700;
           emitDamageNumber(other.x, other.y, ramDmg, '#fb923c');
@@ -1517,7 +1629,7 @@ setInterval(() => {
     }
   }
 
-  // Aggiorna Proiettili
+  // Aggiorna Proiettili, Arpioni [V] e Collisioni Barili Esplosivi
   for (let i = bullets.length - 1; i >= 0; i--) {
     const b = bullets[i];
 
@@ -1551,9 +1663,53 @@ setInterval(() => {
       continue;
     }
 
+    // Se è un Arpione [V], può arpionare Reliquie o Casse a distanza!
+    if (b.isHarpoon && players[b.ownerId]) {
+      const shooter = players[b.ownerId];
+      let hookedItem = false;
+      for (let rIdx = relics.length - 1; rIdx >= 0; rIdx--) {
+        if (Math.hypot(b.x - relics[rIdx].x, b.y - relics[rIdx].y) < 36) {
+          if (handleRelicPickup(shooter, relics[rIdx])) relics.splice(rIdx, 1);
+          hookedItem = true;
+          break;
+        }
+      }
+      if (hookedItem) {
+        bullets.splice(i, 1);
+        continue;
+      }
+    }
+
+    // Impatto contro Barili di Polvere Nera Esplosivi
+    let hitBarrel = false;
+    if (!b.isBossBullet) {
+      for (let brIdx = barrels.length - 1; brIdx >= 0; brIdx--) {
+        const br = barrels[brIdx];
+        if (Math.hypot(b.x - br.x, b.y - br.y) < br.radius + 8) {
+          barrels.splice(brIdx, 1);
+          triggerBarrelExplosion(br, b.ownerId);
+          if (barrels.length < MAX_BARRELS) spawnBarrel();
+          hitBarrel = true;
+          break;
+        }
+      }
+    }
+    if (hitBarrel) {
+      bullets.splice(i, 1);
+      continue;
+    }
+
+    // Impatto contro Scogli (L'Arpione [V] ti tira verso lo scoglio dandoti un turbo di manovra!)
     let hitRock = false;
     for (let r of rocks) {
       if (Math.hypot(b.x - r.x, b.y - r.y) < r.radius) {
+        if (b.isHarpoon && players[b.ownerId]) {
+          const shooter = players[b.ownerId];
+          shooter.angle = Math.atan2(r.y - shooter.y, r.x - shooter.x);
+          shooter.speed = shooter.maxSpeed * 1.9;
+          shooter.nitroUntil = now + 900;
+          io.emit('dmgNum', { x: Math.round(shooter.x), y: Math.round(shooter.y - 35), text: '🪝 Slancio Rampino!', color: '#38bdf8' });
+        }
         io.emit('hitEffect', { x: Math.round(b.x), y: Math.round(b.y) });
         hitRock = true;
         break;
@@ -1599,7 +1755,6 @@ setInterval(() => {
       continue;
     }
 
-    // Impatto contro il Boss Leviatano (PATCH v1.0.1: Rubavita dimezzato contro il Boss)
     if (!b.isBossBullet && boss.alive && Math.hypot(b.x - boss.x, b.y - boss.y) < boss.radius) {
       boss.hp -= b.damage;
       emitDamageNumber(b.x, b.y, b.damage, '#fbbf24');
@@ -1657,18 +1812,26 @@ setInterval(() => {
         target.hp -= finalDmg;
         target.extractProgress = 0;
 
-        // PATCH v1.0.1: Subire un colpo ti rivela e blocca lo spegnimento della lanterna per 5s
-        target.lanternOn = true;
-        target.lanternLockUntil = now + 5000;
+        revealShipLantern(target, now);
 
-        // PATCH v1.0.1: I colpi base del Tempestario applicano solo Micro-Scossa (-18% vel per 0.5s)
+        // Se colpito dall'Arpione [V], tira il bersaglio verso chi ha sparato!
+        if (b.isHarpoon && players[b.ownerId]) {
+          const shooter = players[b.ownerId];
+          const pullAngle = Math.atan2(shooter.y - target.y, shooter.x - target.x);
+          target.x += Math.cos(pullAngle) * 75;
+          target.y += Math.sin(pullAngle) * 75;
+          target.miniShockUntil = now + 1200;
+          emitDamageNumber(target.x, target.y - 30, finalDmg, '#fde047', '🪝 ARpionato! -');
+        } else {
+          emitDamageNumber(target.x, target.y - 15, finalDmg, '#f87171');
+        }
+
         if (b.shockOnHit && !(target.shipClass === 'juggernaut' && now < target.activeBuffUntil)) {
           target.miniShockUntil = Math.max(target.miniShockUntil, now + 500);
         }
 
         if (target.isRepairing) interruptRepair(target, 'Colpito! Riparazione Interrotta!');
 
-        emitDamageNumber(target.x, target.y - 15, finalDmg, '#f87171');
         io.emit('hitEffect', { x: Math.round(b.x), y: Math.round(b.y) });
 
         if (b.lifestealRatio > 0 && players[b.ownerId]) {
@@ -1682,6 +1845,12 @@ setInterval(() => {
           const killer = players[b.ownerId];
           killer.kills++;
           killer.xp += target.isElite ? 140 : 80;
+
+          io.emit('killfeed', {
+            killer: killer.name,
+            victim: target.name,
+            weapon: b.isHarpoon ? '🪝 Arpione' : '💣 Bordata'
+          });
 
           if (lobbyState.weather === 'bloodfog') {
             const bloodHeal = Math.round(killer.maxHp * 0.3);
@@ -1721,6 +1890,7 @@ setInterval(() => {
     relics,
     consumables,
     seaMines,
+    barrels,
     storm,
     boss,
     treasureIsland,
@@ -1735,5 +1905,5 @@ setInterval(() => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  console.log(`🏴‍☠️ Abyssal Sails RPG v1.0.1 (Balance Patch) attivo su http://localhost:${PORT}`);
+  console.log(`🏴‍☠️ Abyssal Sails RPG v1.1 (Harpoon [V], Explosive Barrels & Lantern Fix) attivo su http://localhost:${PORT}`);
 });
