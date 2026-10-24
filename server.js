@@ -19,9 +19,8 @@ const MAX_BARRELS = 12;
 const MATCH_DURATION_MS = 6 * 60 * 1000;
 const INTERMISSION_MS = 10 * 1000;
 
-// Costanti Bilanciamento Lanterna Furtiva [L]
-const STEALTH_MAX_DURATION_MS = 8000; // Max 8 secondi continui al buio
-const LANTERN_COOLDOWN_MS = 6000;     // 6 secondi di ricarica dopo ogni riaccensione
+const STEALTH_MAX_DURATION_MS = 8000;
+const LANTERN_COOLDOWN_MS = 6000;
 
 let players = {};
 let bullets = [];
@@ -30,7 +29,7 @@ let rocks = [];
 let relics = [];
 let consumables = [];
 let seaMines = [];
-let barrels = []; // Barili rossi esplosivi ambientali
+let barrels = [];
 
 let botRespawnCooldownUntil = 0;
 
@@ -207,10 +206,11 @@ function triggerBarrelExplosion(barrel, attackerId) {
       if (t.isRepairing) interruptRepair(t, 'Esplosione Barile!');
       emitDamageNumber(t.x, t.y - 20, blastDmg, '#f97316', '🧨 ');
 
-      // Spinta d'onda d'urto
+      // Impulso fisico d'onda d'urto sul vettore d'inerzia!
       if (d > 1) {
-        t.x += ((t.x - bx) / d) * 45;
-        t.y += ((t.y - by) / d) * 45;
+        const force = (1 - d / blastRadius) * 14 + 5;
+        t.momX += ((t.x - bx) / d) * force;
+        t.momY += ((t.y - by) / d) * force;
       }
 
       if (t.hp <= 0 && attackerId && players[attackerId] && attackerId !== id) {
@@ -306,6 +306,11 @@ function createShip(id, name, isBot = false, meta = {}, isElite = false) {
     y: spawnPos.y,
     angle: Number((Math.random() * Math.PI * 2).toFixed(3)),
     speed: 0,
+    // Vettori di Momento & Inerzia (per derapate, pendolo rampino e spinte)
+    momX: 0,
+    momY: 0,
+    mass: isElite ? 1.35 : 1.0,
+    tether: null, // { type: 'rock'|'ship'|'boss', x, y, targetId, rockId, until, minReleaseDist }
     baseMaxSpeed: baseSpeed,
     maxSpeed: baseSpeed,
     baseTurnSpeed: 0.044 + sailLv * 0.0008,
@@ -326,13 +331,11 @@ function createShip(id, name, isBot = false, meta = {}, isElite = false) {
     kills: 0,
     soulsCollected: 0,
     isMostWanted: false,
-    // Sistema Lanterna Furtiva [L] Corretto (Durata Max 8s + Cooldown 6s a ogni riaccensione)
     lanternOn: true,
     stealthSince: 0,
     lanternLockUntil: 0,
-    // Arpione Abissale a Prua [V]
     lastHarpoon: 0,
-    harpoonCd: 10000,
+    harpoonCd: 9500,
     shockedUntil: 0,
     miniShockUntil: 0,
     extractProgress: 0,
@@ -374,7 +377,6 @@ function createShip(id, name, isBot = false, meta = {}, isElite = false) {
   return ship;
 }
 
-// Funzione centralizzata per riaccendere la lanterna e applicare SEMPRE il cooldown di 6s
 function revealShipLantern(ship, now) {
   ship.lanternOn = true;
   ship.stealthSince = 0;
@@ -526,11 +528,12 @@ function recalculateShipStats(p) {
   let reload = Math.max(420, p.baseReloadTime - p.statUpgrades.reload * 130);
   let lifesteal = 0;
   let armor = 0;
+  let mass = p.isElite ? 1.35 : 1.0;
 
-  if (p.shipClass === 'juggernaut') { maxHp += 95; armor += 0.20; }
-  if (p.shipClass === 'phantom') { maxSpd += 1.0; turnSpd += 0.009; }
-  if (p.shipClass === 'necromancer') { maxHp += 45; dmg += 4.5; lifesteal += 0.40; }
-  if (p.shipClass === 'stormcaller') { maxHp += 55; dmg += 4.5; reload *= 0.90; }
+  if (p.shipClass === 'juggernaut') { maxHp += 95; armor += 0.20; mass = 1.65; }
+  if (p.shipClass === 'phantom') { maxSpd += 1.0; turnSpd += 0.009; mass = 0.78; }
+  if (p.shipClass === 'necromancer') { maxHp += 45; dmg += 4.5; lifesteal += 0.40; mass = 1.1; }
+  if (p.shipClass === 'stormcaller') { maxHp += 55; dmg += 4.5; reload *= 0.90; mass = 1.05; }
 
   const ids = new Set();
   p.inventory.forEach(r => {
@@ -545,6 +548,7 @@ function recalculateShipStats(p) {
     } else if (r.id === 'bone') {
       maxHp += 55 * lv;
       armor += 0.09 * lv;
+      mass += 0.1 * lv;
       r.desc = `+${55 * lv} HP & +${Math.round(9 * lv)}% Corazza`;
     } else if (r.id === 'compass') {
       maxSpd += 0.55 * lv;
@@ -587,6 +591,7 @@ function recalculateShipStats(p) {
   p.reloadTime = Math.max(360, Math.round(reload));
   p.lifestealBonus = Math.min(0.60, lifesteal);
   p.armorBonus = Math.min(0.65, armor);
+  p.mass = mass;
   p.activeSynergies = synergies;
 }
 
@@ -701,6 +706,9 @@ function fireBroadsides(ship) {
   const necroBroadsideBalance = ship.shipClass === 'necromancer' ? 0.80 : 1.0;
   const dmgMult = (isHellfire ? 1.45 : 1.0) * ambushMult * necroBroadsideBalance;
 
+  const shipVelX = Math.cos(ship.angle) * ship.speed + ship.momX;
+  const shipVelY = Math.sin(ship.angle) * ship.speed + ship.momY;
+
   sides.forEach(sideOffset => {
     spreadAngles.forEach(spread => {
       const fireAngle = ship.angle + sideOffset + spread;
@@ -713,8 +721,8 @@ function fireBroadsides(ship) {
         lifestealRatio: ship.lifestealBonus,
         x: Math.round(ship.x + Math.cos(fireAngle) * 30),
         y: Math.round(ship.y + Math.sin(fireAngle) * 30),
-        vx: Math.cos(fireAngle) * bulletSpeed + Math.cos(ship.angle) * (ship.speed * 0.3),
-        vy: Math.sin(fireAngle) * bulletSpeed + Math.sin(ship.angle) * (ship.speed * 0.3),
+        vx: Math.cos(fireAngle) * bulletSpeed + shipVelX * 0.3,
+        vy: Math.sin(fireAngle) * bulletSpeed + shipVelY * 0.3,
         damage: ship.damage * dmgMult,
         color: getSkinBulletColor(ship.skin, ship.shipClass, isHellfire),
         life: 58
@@ -725,29 +733,42 @@ function fireBroadsides(ship) {
   io.emit('cannonFired', { x: Math.round(ship.x), y: Math.round(ship.y), id: ship.id });
 }
 
-// NUOVA MECCANICA v1.1: Arpione Abissale a Prua [V]
-function fireHarpoon(ship) {
+// =========================================================
+// ARPIONE DIREZIONALE AL MOUSE & SGANCIO CAVO [V]
+// =========================================================
+function fireHarpoon(ship, targetAngle = null) {
   if (lobbyState.phase === 'intermission') return;
   const now = Date.now();
+
+  // Se il cavo è già agganciato a uno scoglio o a una nave, premere [V] TAGLIA LA CORDA
+  // permettendoti di schizzare via per inerzia lungo la tangente!
+  if (ship.tether) {
+    ship.tether = null;
+    io.emit('dmgNum', { x: Math.round(ship.x), y: Math.round(ship.y - 35), text: '✂️ Cavo Sganciato!', color: '#fde047' });
+    return;
+  }
+
   if (now - ship.lastHarpoon < ship.harpoonCd) return;
   ship.lastHarpoon = now;
 
   revealShipLantern(ship, now);
 
-  const speed = 21;
+  const fireAngle = (typeof targetAngle === 'number' && !isNaN(targetAngle)) ? targetAngle : ship.angle;
+  const speed = 22;
+
   bullets.push({
     ownerId: ship.id,
     isBossBullet: false,
     homing: false,
     isHarpoon: true,
     lifestealRatio: 0,
-    x: Math.round(ship.x + Math.cos(ship.angle) * 38),
-    y: Math.round(ship.y + Math.sin(ship.angle) * 38),
-    vx: Math.cos(ship.angle) * speed,
-    vy: Math.sin(ship.angle) * speed,
+    x: Math.round(ship.x + Math.cos(fireAngle) * 34),
+    y: Math.round(ship.y + Math.sin(fireAngle) * 34),
+    vx: Math.cos(fireAngle) * speed,
+    vy: Math.sin(fireAngle) * speed,
     damage: 22,
     color: '#fde047',
-    life: 24 // ~500px di gittata dritta a prua
+    life: 24 // ~528px di portata verso il cursore
   });
 
   io.emit('dmgNum', { x: Math.round(ship.x), y: Math.round(ship.y - 30), text: '🪝 Arpione!', color: '#fde047' });
@@ -772,7 +793,9 @@ function useConsumableItem(ship) {
     io.emit('dmgNum', { x: Math.round(ship.x), y: Math.round(ship.y - 30), text: '💣 Mina Piazzata!', color: '#f97316' });
   } else if (item.id === 'nitro') {
     ship.nitroUntil = now + 2500;
-    ship.speed = ship.maxSpeed * 1.9;
+    ship.speed = ship.maxSpeed * 1.6;
+    ship.momX += Math.cos(ship.angle) * 6;
+    ship.momY += Math.sin(ship.angle) * 6;
     io.emit('abilityFx', { x: Math.round(ship.x), y: Math.round(ship.y), type: 'phantom' });
     io.emit('dmgNum', { x: Math.round(ship.x), y: Math.round(ship.y - 30), text: '💨 Vento Stregato!', color: '#38bdf8' });
   } else if (item.id === 'hellfire') {
@@ -811,7 +834,9 @@ function activateAbility(ship) {
     ship.activeBuffUntil = now + 1800;
     ship.shockedUntil = 0;
     ship.miniShockUntil = 0;
-    ship.speed = ship.maxSpeed * 2.2;
+    ship.speed = ship.maxSpeed * 1.9;
+    ship.momX += Math.cos(ship.angle) * 5.5;
+    ship.momY += Math.sin(ship.angle) * 5.5;
     io.emit('abilityFx', { x: Math.round(ship.x), y: Math.round(ship.y), type: 'juggernaut' });
   } else if (ship.shipClass === 'phantom') {
     ship.activeBuffUntil = now + 3600;
@@ -923,8 +948,8 @@ io.on('connection', (socket) => {
     if (players[socket.id]) fireBroadsides(players[socket.id]);
   });
 
-  socket.on('useHarpoon', () => {
-    if (players[socket.id]) fireHarpoon(players[socket.id]);
+  socket.on('useHarpoon', (aimAngle) => {
+    if (players[socket.id]) fireHarpoon(players[socket.id], aimAngle);
   });
 
   socket.on('useAbility', () => {
@@ -935,9 +960,6 @@ io.on('connection', (socket) => {
     if (players[socket.id]) useConsumableItem(players[socket.id]);
   });
 
-  // FIX DEFINITIVO LANTERNA [L]:
-  // - Spegnere la lanterna richiede che il cooldown di 6s sia terminato
-  // - Riaccendere manualmente la lanterna attiva SEMPRE i 6s di cooldown prima di poterla rispegnere!
   socket.on('toggleLantern', () => {
     const p = players[socket.id];
     if (!p) return;
@@ -963,7 +985,6 @@ io.on('connection', (socket) => {
         color: '#94a3b8'
       });
     } else {
-      // Riaccensione manuale -> Applica il cooldown di 6 secondi!
       revealShipLantern(p, now);
       io.emit('dmgNum', {
         x: Math.round(p.x),
@@ -1363,7 +1384,9 @@ setInterval(() => {
     });
   }
 
-  // Aggiorna Navi
+  // =========================================================
+  // FISICA NAVI + CAVO RAMPINO INERZIALE (PENDOLO / FIONDA)
+  // =========================================================
   for (let id in players) {
     const p = players[id];
     if (p.isBot) updateBotAI(p);
@@ -1371,7 +1394,6 @@ setInterval(() => {
     if (p.pendingRelic && now > p.pendingRelicUntil) p.pendingRelic = null;
     if (p.emote && now > p.emoteUntil) p.emote = null;
 
-    // FIX v1.1: Scadenza automatica della Furtività dopo 8 secondi continui al buio!
     if (!p.lanternOn && now - p.stealthSince >= STEALTH_MAX_DURATION_MS) {
       revealShipLantern(p, now);
       io.emit('dmgNum', {
@@ -1395,6 +1417,90 @@ setInterval(() => {
       } else {
         const healPerTick = (p.maxHp * 0.45) / (4 * TICK_RATE);
         p.hp = Math.min(p.maxHp, p.hp + healPerTick);
+      }
+    }
+
+    // GESTIONE FISICA DEL CAVO ARPIONE (TETHER)
+    if (p.tether) {
+      if (now >= p.tether.until) {
+        p.tether = null;
+      } else if (p.tether.type === 'rock') {
+        const dx = p.tether.x - p.x;
+        const dy = p.tether.y - p.y;
+        const dist = Math.hypot(dx, dy);
+
+        // Se sei arrivato a sfiorare lo scoglio, sgancia automaticamente il cavo lasciandoti l'inerzia della fionda!
+        if (dist <= (p.tether.minReleaseDist || 85)) {
+          p.tether = null;
+        } else {
+          const nx = dx / dist;
+          const ny = dy / dist;
+
+          // Determina il lato di rotazione (prodotto vettoriale tra la prua della nave e il cavo)
+          const cross = Math.cos(p.angle) * ny - Math.sin(p.angle) * nx;
+          const swingDir = cross >= 0 ? 1 : -1;
+
+          // Vettore tangenziale (perpendicolare al cavo) per l'effetto pendolo/fionda attorno allo scoglio
+          const tx = -ny * swingDir;
+          const ty = nx * swingDir;
+
+          // Forza centripeta del verricello + spinta tangenziale d'inerzia
+          const pullForce = 0.85;
+          const swingForce = 0.72 + (Math.abs(p.speed) / p.maxSpeed) * 0.55;
+
+          p.momX += nx * pullForce + tx * swingForce;
+          p.momY += ny * pullForce + ty * swingForce;
+
+          // Ruota gradualmente la prua lungo la traiettoria tangenziale della derapata
+          const velAngle = Math.atan2(Math.sin(p.angle) * p.speed + p.momY, Math.cos(p.angle) * p.speed + p.momX);
+          const diffA = Math.atan2(Math.sin(velAngle - p.angle), Math.cos(velAngle - p.angle));
+          p.angle += diffA * 0.14;
+        }
+      } else if (p.tether.type === 'ship') {
+        const target = players[p.tether.targetId];
+        if (!target) {
+          p.tether = null;
+        } else {
+          p.tether.x = Math.round(target.x);
+          p.tether.y = Math.round(target.y);
+          const dx = target.x - p.x;
+          const dy = target.y - p.y;
+          const dist = Math.hypot(dx, dy);
+
+          if (dist < 75) {
+            p.tether = null;
+          } else {
+            const nx = dx / dist;
+            const ny = dy / dist;
+            // Trazione reciproca basata sulla massa dello scafo!
+            const totalMass = p.mass + target.mass;
+            const myPull = (target.mass / totalMass) * 1.45;
+            const targetPull = (p.mass / totalMass) * 1.65;
+
+            p.momX += nx * myPull;
+            p.momY += ny * myPull;
+            target.momX -= nx * targetPull;
+            target.momY -= ny * targetPull;
+          }
+        }
+      } else if (p.tether.type === 'boss') {
+        if (!boss.alive) {
+          p.tether = null;
+        } else {
+          p.tether.x = Math.round(boss.x);
+          p.tether.y = Math.round(boss.y);
+          const dx = boss.x - p.x;
+          const dy = boss.y - p.y;
+          const dist = Math.hypot(dx, dy);
+          if (dist < boss.radius + 45) {
+            p.tether = null;
+          } else {
+            const nx = dx / dist;
+            const ny = dy / dist;
+            p.momX += nx * 1.5;
+            p.momY += ny * 1.5;
+          }
+        }
       }
     }
 
@@ -1426,8 +1532,8 @@ setInterval(() => {
       const dy = wp.y - p.y;
       const d = Math.hypot(dx, dy);
       if (d < wp.radius && d > 5) {
-        p.x += (dx / d) * 2.1;
-        p.y += (dy / d) * 2.1;
+        p.momX += (dx / d) * 0.35;
+        p.momY += (dy / d) * 0.35;
         p.angle += 0.025;
         if (d < 55) {
           p.hp -= 0.45;
@@ -1472,22 +1578,40 @@ setInterval(() => {
     if (p.inputs.left) p.angle -= p.turnSpeed;
     if (p.inputs.right) p.angle += p.turnSpeed;
 
-    p.x += Math.cos(p.angle) * p.speed;
-    p.y += Math.sin(p.angle) * p.speed;
+    // Decadimento morbido dell'inerzia sull'acqua (permette derapate fluide!)
+    p.momX *= 0.91;
+    p.momY *= 0.91;
+    if (Math.abs(p.momX) < 0.02) p.momX = 0;
+    if (Math.abs(p.momY) < 0.02) p.momY = 0;
+
+    // Movimento risultante = Spinta Vele + Vettore d'Inerzia
+    p.x += Math.cos(p.angle) * p.speed + p.momX;
+    p.y += Math.sin(p.angle) * p.speed + p.momY;
 
     p.x = Math.max(80, Math.min(MAP_SIZE - 80, p.x));
     p.y = Math.max(80, Math.min(MAP_SIZE - 80, p.y));
 
+    // Collisione con Scogli + Rimbalzo elastico se stavi fiondando col rampino
     rocks.forEach(r => {
       const dx = p.x - r.x;
       const dy = p.y - r.y;
       const dist = Math.hypot(dx, dy);
       const minDist = r.radius + 32;
       if (dist < minDist && dist > 0) {
-        const push = (minDist - dist);
-        p.x += (dx / dist) * push;
-        p.y += (dy / dist) * push;
-        p.speed *= 0.6;
+        const nx = dx / dist;
+        const ny = dy / dist;
+        const push = minDist - dist;
+        p.x += nx * push;
+        p.y += ny * push;
+
+        // Proietta il momento lungo la tangente dello scoglio così scivoli invece di bloccarti!
+        const dot = p.momX * nx + p.momY * ny;
+        if (dot < 0) {
+          p.momX -= nx * dot * 1.1;
+          p.momY -= ny * dot * 1.1;
+        }
+        p.speed *= 0.72;
+        if (p.tether && p.tether.rockId === r.id) p.tether = null;
       }
     });
 
@@ -1504,9 +1628,12 @@ setInterval(() => {
         other.x += (dx / dist) * overlap;
         other.y += (dy / dist) * overlap;
 
-        if (now > p.ramCooldownUntil && Math.abs(p.speed) > 3.5) {
-          const ramDmg = isJuggernautCharging ? 58 : (p.shipClass === 'juggernaut' ? 30 : 10);
+        const totalVel = Math.hypot(Math.cos(p.angle) * p.speed + p.momX, Math.sin(p.angle) * p.speed + p.momY);
+        if (now > p.ramCooldownUntil && totalVel > 3.6) {
+          const ramDmg = isJuggernautCharging ? 58 : (p.shipClass === 'juggernaut' ? 30 : 12);
           other.hp -= ramDmg;
+          other.momX += (dx / dist) * 5.5;
+          other.momY += (dy / dist) * 5.5;
           revealShipLantern(other, now);
           if (other.isRepairing) interruptRepair(other);
           p.ramCooldownUntil = now + 700;
@@ -1611,7 +1738,7 @@ setInterval(() => {
     }
   }
 
-  // Intercettazione Teschi Homing del Negromante
+  // Intercettazione Teschi Homing
   for (let i = bullets.length - 1; i >= 0; i--) {
     const b1 = bullets[i];
     if (!b1 || !b1.homing) continue;
@@ -1629,7 +1756,7 @@ setInterval(() => {
     }
   }
 
-  // Aggiorna Proiettili, Arpioni [V] e Collisioni Barili Esplosivi
+  // Aggiorna Proiettili & Aggancio Fisico Rampino [V]
   for (let i = bullets.length - 1; i >= 0; i--) {
     const b = bullets[i];
 
@@ -1663,15 +1790,28 @@ setInterval(() => {
       continue;
     }
 
-    // Se è un Arpione [V], può arpionare Reliquie o Casse a distanza!
+    // L'Arpione raccoglie al volo Reliquie o Casse Tattiche
     if (b.isHarpoon && players[b.ownerId]) {
       const shooter = players[b.ownerId];
       let hookedItem = false;
       for (let rIdx = relics.length - 1; rIdx >= 0; rIdx--) {
-        if (Math.hypot(b.x - relics[rIdx].x, b.y - relics[rIdx].y) < 36) {
+        if (Math.hypot(b.x - relics[rIdx].x, b.y - relics[rIdx].y) < 38) {
           if (handleRelicPickup(shooter, relics[rIdx])) relics.splice(rIdx, 1);
           hookedItem = true;
           break;
+        }
+      }
+      if (!hookedItem && !shooter.consumable) {
+        for (let cIdx = consumables.length - 1; cIdx >= 0; cIdx--) {
+          if (Math.hypot(b.x - consumables[cIdx].x, b.y - consumables[cIdx].y) < 38) {
+            const c = consumables[cIdx];
+            shooter.consumable = { id: c.id, name: c.name, icon: c.icon, color: c.color, desc: c.desc };
+            io.emit('dmgNum', { x: Math.round(shooter.x), y: Math.round(shooter.y - 32), text: `🪝 ${c.icon} Catturato!`, color: c.color });
+            consumables.splice(cIdx, 1);
+            if (consumables.length < MAX_CONSUMABLES) spawnConsumable();
+            hookedItem = true;
+            break;
+          }
         }
       }
       if (hookedItem) {
@@ -1680,7 +1820,7 @@ setInterval(() => {
       }
     }
 
-    // Impatto contro Barili di Polvere Nera Esplosivi
+    // Impatto Barili Esplosivi
     let hitBarrel = false;
     if (!b.isBossBullet) {
       for (let brIdx = barrels.length - 1; brIdx >= 0; brIdx--) {
@@ -1699,16 +1839,26 @@ setInterval(() => {
       continue;
     }
 
-    // Impatto contro Scogli (L'Arpione [V] ti tira verso lo scoglio dandoti un turbo di manovra!)
+    // Impatto Scogli: Crea il vincolo fisico (Tether) per la derapata/fionda!
     let hitRock = false;
     for (let r of rocks) {
       if (Math.hypot(b.x - r.x, b.y - r.y) < r.radius) {
         if (b.isHarpoon && players[b.ownerId]) {
           const shooter = players[b.ownerId];
-          shooter.angle = Math.atan2(r.y - shooter.y, r.x - shooter.x);
-          shooter.speed = shooter.maxSpeed * 1.9;
-          shooter.nitroUntil = now + 900;
-          io.emit('dmgNum', { x: Math.round(shooter.x), y: Math.round(shooter.y - 35), text: '🪝 Slancio Rampino!', color: '#38bdf8' });
+          shooter.tether = {
+            type: 'rock',
+            rockId: r.id,
+            x: Math.round(b.x),
+            y: Math.round(b.y),
+            minReleaseDist: r.radius + 48,
+            until: now + 1300
+          };
+          io.emit('dmgNum', {
+            x: Math.round(shooter.x),
+            y: Math.round(shooter.y - 35),
+            text: '🪝 Rampino Agganciato! ([V] per Sganciare)',
+            color: '#fde047'
+          });
         }
         io.emit('hitEffect', { x: Math.round(b.x), y: Math.round(b.y) });
         hitRock = true;
@@ -1759,6 +1909,16 @@ setInterval(() => {
       boss.hp -= b.damage;
       emitDamageNumber(b.x, b.y, b.damage, '#fbbf24');
       io.emit('hitEffect', { x: Math.round(b.x), y: Math.round(b.y) });
+
+      // Se arpioni il Boss, il cavo ti fionda verso di lui!
+      if (b.isHarpoon && players[b.ownerId]) {
+        players[b.ownerId].tether = {
+          type: 'boss',
+          x: Math.round(boss.x),
+          y: Math.round(boss.y),
+          until: now + 950
+        };
+      }
 
       if (b.lifestealRatio > 0 && players[b.ownerId]) {
         const healer = players[b.ownerId];
@@ -1814,14 +1974,18 @@ setInterval(() => {
 
         revealShipLantern(target, now);
 
-        // Se colpito dall'Arpione [V], tira il bersaglio verso chi ha sparato!
+        // Se colpito dall'Arpione [V], crea il Cavo Teso tra le due navi!
         if (b.isHarpoon && players[b.ownerId]) {
           const shooter = players[b.ownerId];
-          const pullAngle = Math.atan2(shooter.y - target.y, shooter.x - target.x);
-          target.x += Math.cos(pullAngle) * 75;
-          target.y += Math.sin(pullAngle) * 75;
-          target.miniShockUntil = now + 1200;
-          emitDamageNumber(target.x, target.y - 30, finalDmg, '#fde047', '🪝 ARpionato! -');
+          shooter.tether = {
+            type: 'ship',
+            targetId: target.id,
+            x: Math.round(target.x),
+            y: Math.round(target.y),
+            until: now + 950
+          };
+          target.miniShockUntil = now + 950;
+          emitDamageNumber(target.x, target.y - 30, finalDmg, '#fde047', '🪝 ARPIONATO! -');
         } else {
           emitDamageNumber(target.x, target.y - 15, finalDmg, '#f87171');
         }
@@ -1905,5 +2069,5 @@ setInterval(() => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  console.log(`🏴‍☠️ Abyssal Sails RPG v1.1 (Harpoon [V], Explosive Barrels & Lantern Fix) attivo su http://localhost:${PORT}`);
+  console.log(`🏴‍☠️ Abyssal Sails RPG v1.2 (Mouse-Aimed Harpoon & Momentum Physics) attivo su http://localhost:${PORT}`);
 });

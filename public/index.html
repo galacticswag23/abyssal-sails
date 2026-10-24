@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Abyssal Sails .io - Dark Fantasy Pirate Royale v1.1</title>
+  <title>Abyssal Sails .io - Dark Fantasy Pirate Royale v1.2</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Inter:wght@400;500;600;700&display=swap');
 
     * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
     body, html { width: 100%; height: 100%; overflow: hidden; background: #030609; font-family: 'Inter', sans-serif; color: #e2d9c8; }
-    canvas { display: block; }
+    canvas { display: block; cursor: crosshair; }
 
     #vignette {
       position: fixed; inset: 0; pointer-events: none; z-index: 5;
@@ -190,9 +190,7 @@
     }
     .buy-upg-btn:disabled { opacity: 0.38; border-color: #475569; color: #94a3b8; cursor: not-allowed; }
 
-    /* =====================================================
-       HUD IN PARTITA + MINIMAPPA + KILLFEED
-       ===================================================== */
+    /* HUD IN PARTITA */
     #hud { position: fixed; inset: 0; pointer-events: none; z-index: 10; display: none; }
     #minimapCanvas {
       position: absolute; top: 16px; left: 16px;
@@ -326,14 +324,14 @@
     <p id="toast-desc">Hai riscosso Dobloni Abissali</p>
   </div>
 
-  <!-- HOME PAGE - DASHBOARD ("IL PORTO MALEDETTO" v1.1) -->
+  <!-- HOME PAGE - DASHBOARD ("IL PORTO MALEDETTO" v1.2) -->
   <div id="overlay">
     <div class="dashboard-wrap">
 
       <div class="dash-header">
         <div class="brand-title">
           <h1>ABYSSAL SAILS</h1>
-          <span>IL PORTO MALEDETTO • BUILD v1.1: ARPIONI & BARILI ESPLOSIVI</span>
+          <span>IL PORTO MALEDETTO • BUILD v1.2: RAMPINO AL MOUSE & FISICA INERZIALE</span>
         </div>
         <div class="captain-badges">
           <button class="sound-btn" id="soundToggleBtn" onclick="toggleSound()">🔊 Audio: ON</button>
@@ -390,9 +388,9 @@
           <button id="playBtn">SALPA NELL'ABISSO</button>
 
           <div class="controls-mini">
-            <span>W/S/A/D</span> Manovra • <span>SPAZIO / CLICK SX</span> Bordate • <span>V</span> Arpione a Prua (Tira nemici o Rampino su Scogli!)<br/>
-            <span>L</span> Lanterna (Max 8s buio, 6s CD) • <span>Q</span> Oggetto • <span>R</span> Ripara • <span>E / CLICK DX</span> Abilità • <span>F</span> Mercante<br/>
-            <span>🧨 Barili Rossi:</span> Sparagli contro per farli esplodere (105 Danni ad area)!
+            <span>W/S/A/D</span> Manovra • <span>SPAZIO / CLICK SX</span> Bordate • <span>V / CLICK CENTRALE</span> Rampino verso il Mouse!<br/>
+            <span>🪝 Effetto Fionda:</span> Arpiona uno Scoglio per derapare attorno ad esso e premi <span>[V]</span> per sganciare!<br/>
+            <span>L</span> Lanterna (Max 8s buio, 6s CD) • <span>Q</span> Oggetto • <span>R</span> Ripara • <span>E / CLICK DX</span> Abilità
           </div>
         </div>
 
@@ -431,7 +429,7 @@
       <div class="class-cards">
         <div class="class-card" onclick="selectClass('juggernaut')">
           <h4>🛡️ JUGGERNAUT</h4>
-          <p>+95 HP & Corazza.<br/><b>Abilità [E]:</b> Carica Inarrestabile (Immune agli slow).</p>
+          <p>+95 HP & Massa Pesante.<br/><b>Abilità [E]:</b> Carica Inarrestabile (Immune agli slow).</p>
         </div>
         <div class="class-card" onclick="selectClass('phantom')">
           <h4>👻 SPETTRALE</h4>
@@ -460,8 +458,8 @@
         <div id="lantern-box" class="pill-box" onclick="socket.emit('toggleLantern')">
           <span id="lantern-text">🔦 [L] Lanterna: ON</span>
         </div>
-        <div id="harpoon-box" class="pill-box" onclick="socket.emit('useHarpoon')">
-          <span id="harpoon-text">🪝 [V] Arpione: Pronto</span>
+        <div id="harpoon-box" class="pill-box" onclick="triggerHarpoonAtMouse()">
+          <span id="harpoon-text">🪝 [V] Rampino: Pronto</span>
         </div>
         <div id="consumable-box" class="pill-box" onclick="socket.emit('useConsumable')">
           <span id="consumable-text">📦 [Q] Nessun Oggetto</span>
@@ -501,6 +499,27 @@
     const MAX_PARTICLES = 150;
     const MAX_WAKES = 85;
     const STEALTH_MAX_DURATION_MS = 8000;
+
+    // Coordinate Puntatore Mouse per Mira a 360° del Rampino
+    let mouseScreenX = window.innerWidth / 2;
+    let mouseScreenY = window.innerHeight / 2;
+
+    window.addEventListener('mousemove', (e) => {
+      mouseScreenX = e.clientX;
+      mouseScreenY = e.clientY;
+    });
+
+    function getMouseAimAngle() {
+      const me = renderPlayers[myId];
+      if (!me) return 0;
+      const worldMouseX = mouseScreenX - canvas.width / 2 + camera.x;
+      const worldMouseY = mouseScreenY - canvas.height / 2 + camera.y;
+      return Math.atan2(worldMouseY - me.y, worldMouseX - me.x);
+    }
+
+    window.triggerHarpoonAtMouse = function() {
+      socket.emit('useHarpoon', getMouseAimAngle());
+    };
 
     // =========================================================
     // SINTETIZZATORE AUDIO WEBAUDIO
@@ -799,7 +818,7 @@
     renderDashboardUI();
 
     // =========================================================
-    // ENGINE DI GIOCO OTTIMIZZATO (v1.1)
+    // ENGINE DI GIOCO OTTIMIZZATO (v1.2)
     // =========================================================
     let myId = null;
     let mapSize = 4000;
@@ -983,7 +1002,7 @@
       if (e.repeat) return;
       const k = e.key.toLowerCase();
       if (e.code === 'Space') socket.emit('shoot');
-      if (k === 'v') socket.emit('useHarpoon');
+      if (k === 'v') triggerHarpoonAtMouse();
       if (k === 'e' || k === 'shift') socket.emit('useAbility');
       if (k === 'q') socket.emit('useConsumable');
       if (k === 'l') socket.emit('toggleLantern');
@@ -1006,7 +1025,7 @@
     window.addEventListener('mousedown', (e) => {
       if (document.getElementById('overlay').style.display === 'none') {
         if (e.button === 0) socket.emit('shoot');
-        if (e.button === 1) { e.preventDefault(); socket.emit('useHarpoon'); }
+        if (e.button === 1) { e.preventDefault(); triggerHarpoonAtMouse(); }
         if (e.button === 2) socket.emit('useAbility');
       }
     });
@@ -1315,7 +1334,6 @@
           el.classList.toggle('maxed', isMax);
         });
 
-        // Bottone Lanterna [L] con Countdown Furtività (8s) e Cooldown Ricarica (6s)
         const lantBox = document.getElementById('lantern-box');
         const lantTxt = document.getElementById('lantern-text');
         const lockRem = Math.max(0, Math.ceil(((me.lanternLockUntil || 0) - gameState.serverTime) / 1000));
@@ -1328,10 +1346,15 @@
           lantTxt.innerText = `🌑 [L] Buio: ${stealthRem}s`;
         }
 
-        // Bottone Arpione [V]
-        const harpRem = Math.max(0, Math.ceil(((me.harpoonCd || 10000) - (gameState.serverTime - (me.lastHarpoon || 0))) / 1000));
-        document.getElementById('harpoon-text').innerText =
-          harpRem > 0 ? `🪝 [V] Arpione: ${harpRem}s` : '🪝 [V] Arpione: Pronto';
+        const harpRem = Math.max(0, Math.ceil(((me.harpoonCd || 9500) - (gameState.serverTime - (me.lastHarpoon || 0))) / 1000));
+        const harpTxt = document.getElementById('harpoon-text');
+        if (me.tether) {
+          harpTxt.innerText = '✂️ [V] SGANCIA CAVO!';
+        } else if (harpRem > 0) {
+          harpTxt.innerText = `🪝 [V] Rampino: ${harpRem}s`;
+        } else {
+          harpTxt.innerText = '🪝 [V] Rampino: Pronto';
+        }
 
         const keyLabels = ['Z', 'X', 'C'];
         for (let i = 0; i < 3; i++) {
@@ -1446,9 +1469,35 @@
       });
 
       ctx.restore();
+
+      // Linea di Mira del Rampino verso il puntatore del Mouse (se pronto)
+      const harpReady = (gameState.serverTime - (p.lastHarpoon || 0)) >= (p.harpoonCd || 9500);
+      if (harpReady && !p.tether) {
+        const worldMouseX = mouseScreenX - canvas.width / 2 + camera.x;
+        const worldMouseY = mouseScreenY - canvas.height / 2 + camera.y;
+        const aimA = Math.atan2(worldMouseY - ry, worldMouseX - rx);
+        const dist = Math.min(520, Math.hypot(worldMouseX - rx, worldMouseY - ry));
+        const endX = rx + Math.cos(aimA) * dist;
+        const endY = ry + Math.sin(aimA) * dist;
+
+        ctx.save();
+        ctx.setLineDash([6, 6]);
+        ctx.strokeStyle = 'rgba(250, 204, 21, 0.32)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(rx, ry);
+        ctx.lineTo(endX, endY);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.strokeStyle = 'rgba(250, 204, 21, 0.65)';
+        ctx.beginPath();
+        ctx.arc(endX, endY, 7, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
     }
 
-    // Disegna Indicatori Bussola attorno al tuo vascello per gli Eventi fuori schermo
     function drawEventCompassPointers() {
       const me = renderPlayers[myId];
       if (!me) return;
@@ -1465,7 +1514,7 @@
       }
 
       targets.forEach(t => {
-        if (isInView(t.x, t.y, -40)) return; // Già visibile a schermo
+        if (isInView(t.x, t.y, -40)) return;
         const ang = Math.atan2(t.y - me.y, t.x - me.x);
         const px = me.x + Math.cos(ang) * 190;
         const py = me.y + Math.sin(ang) * 190;
@@ -1687,7 +1736,6 @@
     function drawRelicsConsumablesAndBarrels() {
       const t = Date.now() * 0.005;
 
-      // Barili Rossi di Polvere Nera Esplosivi
       (gameState.barrels || []).forEach(br => {
         if (!isInView(br.x, br.y, 50)) return;
         ctx.save();
@@ -1873,6 +1921,25 @@
       const meRender = renderPlayers[myId] || { x: camera.x, y: camera.y };
       const distToMe = Math.hypot(rp.x - meRender.x, rp.y - meRender.y);
       const isStealthedEnemy = p.id !== myId && !p.lanternOn && distToMe > 200;
+
+      // Disegna il Cavo in Tensione del Rampino (Tether) se agganciato!
+      if (p.tether) {
+        ctx.save();
+        ctx.strokeStyle = '#facc15';
+        ctx.lineWidth = 2.8;
+        ctx.setLineDash([8, 4]);
+        ctx.beginPath();
+        ctx.moveTo(rp.x, rp.y);
+        ctx.lineTo(p.tether.x, p.tether.y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.fillStyle = '#fde047';
+        ctx.beginPath();
+        ctx.arc(p.tether.x, p.tether.y, 6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
 
       const targetBillow = Math.min(1, Math.abs(p.speed) / p.maxSpeed);
       rp.sailBillow += (targetBillow - rp.sailBillow) * 0.1;
@@ -2119,13 +2186,12 @@
       Object.values(gameState.players).forEach(drawShip);
       drawLightningBolts();
 
-      // Palle di cannone + Catena dell'Arpione [V]
       for (let b of gameState.bullets) {
         if (!isInView(b.x, b.y, 60)) continue;
         if (b.isHarpoon && renderPlayers[b.ownerId]) {
           const own = renderPlayers[b.ownerId];
-          ctx.strokeStyle = 'rgba(250, 204, 21, 0.55)';
-          ctx.lineWidth = 2;
+          ctx.strokeStyle = 'rgba(250, 204, 21, 0.65)';
+          ctx.lineWidth = 2.2;
           ctx.beginPath();
           ctx.moveTo(own.x, own.y);
           ctx.lineTo(b.x, b.y);
@@ -2260,7 +2326,7 @@
 
       Object.values(gameState.players).forEach(p => {
         if (p.id !== myId && !p.lanternOn) return;
-        mmCtx.fillStyle = p.isMostWanted ? '#facc15' : (p.isElite ? '#fb7185' : (p.id === myId ? '#2dd4bf' : (p.isBot ? '#a855f7' : '#f87171')));
+        mmCtx.fillStyle = p.isMostWanted ? '#facc15' : (p.isElite ? '#fb7185' : (p.id === myId ? skinColor : (p.isBot ? '#a855f7' : '#f87171')));
         mmCtx.beginPath();
         mmCtx.arc((p.x / mapSize) * size, (p.y / mapSize) * size, p.id === myId || p.isMostWanted || p.isElite ? 3.8 : 2.2, 0, Math.PI * 2);
         mmCtx.fill();
