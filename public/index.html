@@ -16,6 +16,19 @@
       background: radial-gradient(circle at center, transparent 55%, rgba(0, 0, 0, 0.88) 100%);
     }
 
+    /* Banner Globale Boss Warning */
+    #world-banner {
+      position: fixed; top: 28px; left: 50%; transform: translateX(-50%) translateY(-120px);
+      background: linear-gradient(90deg, transparent, rgba(15, 10, 28, 0.95) 20%, rgba(15, 10, 28, 0.95) 80%, transparent);
+      border-top: 2px solid #c084fc; border-bottom: 2px solid #c084fc;
+      padding: 14px 48px; text-align: center; z-index: 15; pointer-events: none;
+      transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 10px 35px rgba(0, 0, 0, 0.85);
+    }
+    #world-banner.show { transform: translateX(-50%) translateY(0); }
+    #banner-title { font-family: 'Cinzel', serif; font-weight: 800; font-size: 1.25rem; color: #e9d5ff; letter-spacing: 1.5px; }
+    #banner-sub { font-size: 0.84rem; color: #cbd5e1; margin-top: 4px; }
+
     #overlay {
       position: fixed; inset: 0;
       background: radial-gradient(circle at center, rgba(12, 22, 28, 0.85) 0%, rgba(3, 5, 8, 0.96) 100%);
@@ -26,7 +39,7 @@
       background: rgba(14, 18, 24, 0.95);
       border: 1px solid #3d2f24;
       box-shadow: 0 0 50px rgba(0, 0, 0, 0.95), inset 0 0 25px rgba(45, 212, 191, 0.06);
-      padding: 36px 42px; border-radius: 8px; text-align: center; max-width: 460px; width: 90%;
+      padding: 36px 42px; border-radius: 8px; text-align: center; max-width: 480px; width: 90%;
     }
     h1 {
       font-family: 'Cinzel', serif; font-size: 2.4rem; color: #2dd4bf;
@@ -57,35 +70,50 @@
     .lb-row { display: flex; justify-content: space-between; font-size: 0.82rem; margin: 4px 0; color: #94a3b8; }
     .lb-row.me { color: #2dd4bf; font-weight: 600; }
 
+    /* Inventario Reliquie (Sotto la Minimappa a sinistra) */
+    #relics-panel {
+      position: absolute; top: 175px; left: 16px;
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .relic-slot {
+      background: rgba(10, 15, 22, 0.88); border: 1px solid #3b3026;
+      border-radius: 6px; padding: 6px 10px; font-size: 0.78rem; color: #94a3b8;
+      display: flex; align-items: center; gap: 8px; min-width: 175px;
+    }
+    .relic-slot.filled { border-color: #eab308; color: #fef08a; box-shadow: 0 0 12px rgba(234, 179, 8, 0.15); }
+
     /* Pannello Evoluzione Classe al Livello 4 */
     #class-modal {
       position: absolute; top: 18%; left: 50%; transform: translateX(-50%);
       display: none; flex-direction: column; align-items: center; gap: 12px;
-      background: rgba(11, 15, 22, 0.95); border: 1px solid #2dd4bf;
+      background: rgba(11, 15, 22, 0.96); border: 1px solid #2dd4bf;
       box-shadow: 0 0 35px rgba(45, 212, 191, 0.3); padding: 18px 24px; border-radius: 8px;
       pointer-events: auto;
     }
     #class-modal h2 { font-family: 'Cinzel', serif; font-size: 1.15rem; color: #5eead4; letter-spacing: 1px; }
     .class-cards { display: flex; gap: 12px; }
     .class-card {
-      width: 175px; background: #090d14; border: 1px solid #3b3026; border-radius: 6px;
+      width: 185px; background: #090d14; border: 1px solid #3b3026; border-radius: 6px;
       padding: 12px; cursor: pointer; transition: 0.2s; text-align: center;
     }
     .class-card:hover { border-color: #2dd4bf; transform: translateY(-4px); background: #111c24; }
     .class-card h4 { font-family: 'Cinzel', serif; color: #f3ede2; font-size: 0.95rem; margin-bottom: 6px; }
     .class-card p { font-size: 0.75rem; color: #94a3b8; line-height: 1.4; }
 
-    /* Barra RPG & Abilità Attiva */
+    /* Barra RPG, Abilità [E] e Riparazione [R] */
     #rpg-bar {
       position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
       display: flex; flex-direction: column; align-items: center; gap: 10px; pointer-events: auto;
     }
-    #ability-box {
-      display: none; align-items: center; gap: 10px;
-      background: rgba(15, 23, 42, 0.92); border: 1px solid #a855f7;
-      padding: 6px 16px; border-radius: 20px; font-size: 0.82rem; color: #e9d5ff;
-      box-shadow: 0 0 15px rgba(168, 85, 247, 0.35);
+    #action-pills { display: flex; gap: 12px; align-items: center; }
+    .pill-box {
+      display: flex; align-items: center; gap: 8px; cursor: pointer;
+      background: rgba(15, 23, 42, 0.92); border: 1px solid #475569;
+      padding: 6px 15px; border-radius: 20px; font-size: 0.8rem; color: #e2e8f0;
+      transition: 0.15s;
     }
+    #ability-box { display: none; border-color: #a855f7; color: #e9d5ff; box-shadow: 0 0 15px rgba(168, 85, 247, 0.3); }
+    #repair-box { border-color: #22c55e; color: #bbf7d0; box-shadow: 0 0 12px rgba(34, 197, 94, 0.2); }
     #upgrades { display: flex; gap: 10px; }
     .upg-btn {
       background: rgba(14, 20, 27, 0.92); border: 1px solid #3b3026; color: #d6cbb9;
@@ -94,7 +122,7 @@
     .upg-btn.available { border-color: #2dd4bf; color: #5eead4; box-shadow: 0 0 12px rgba(45, 212, 191, 0.25); }
     .upg-btn:hover.available { transform: translateY(-2px); background: #132a2e; }
     #xp-container {
-      width: 420px; height: 22px; background: #090d12; border: 1px solid #3d3126;
+      width: 440px; height: 22px; background: #090d12; border: 1px solid #3d3126;
       border-radius: 12px; overflow: hidden; position: relative;
     }
     #xp-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #0d9488, #2dd4bf); transition: width 0.2s; }
@@ -105,6 +133,12 @@
 
   <div id="vignette"></div>
 
+  <!-- Banner Cinematografico Eventi Boss -->
+  <div id="world-banner">
+    <div id="banner-title">🦑 IL LEVIATANO ABISSALE È EMERSO!</div>
+    <div id="banner-sub">Dirigiti al centro della mappa per ottenere Reliquie Mitiche</div>
+  </div>
+
   <div id="overlay">
     <div class="panel">
       <h1>ABYSSAL SAILS</h1>
@@ -114,8 +148,8 @@
       <button id="playBtn">SALPA NELL'ABISSO</button>
       <div class="controls-hint">
         <span>W / S</span> Vele &nbsp;|&nbsp; <span>A / D</span> Timone &nbsp;|&nbsp; <span>SPAZIO / CLICK SX</span> Bordate<br/>
-        <span>E</span> oppure <span>CLICK DX</span> Attiva Abilità Speciale di Classe (Liv. 4)<br/>
-        <span>Al Centro Mappa:</span> Sconfiggi il <span>Leviatano Abissale</span> per Reliquie Leggendarie
+        <span>R</span> Ripara lo Scafo (4s, si interrompe se combatti)<br/>
+        <span>E / CLICK DX</span> Abilità di Classe &nbsp;|&nbsp; Raccogli <span>Reliquie 🏺</span> dai nemici e dal Boss!
       </div>
     </div>
   </div>
@@ -126,28 +160,40 @@
       <div id="lb-list"></div>
     </div>
 
+    <!-- 3 Slot Reliquie Equipaggiate -->
+    <div id="relics-panel">
+      <div class="relic-slot" id="relic-0">🏺 Slot Reliquia Vuoto</div>
+      <div class="relic-slot" id="relic-1">🏺 Slot Reliquia Vuoto</div>
+      <div class="relic-slot" id="relic-2">🏺 Slot Reliquia Vuoto</div>
+    </div>
+
     <!-- Scelta Evoluzione al Livello 4 -->
     <div id="class-modal">
       <h2>SCEGLI L'EVOLUZIONE DEL VASCELLO (LIVELLO 4)</h2>
       <div class="class-cards">
         <div class="class-card" onclick="selectClass('juggernaut')">
           <h4>🛡️ JUGGERNAUT</h4>
-          <p>+85 HP & Corazza.<br/><b>Abilità [E]:</b> Carica del Leviatano (Speronamento devastante).</p>
+          <p>+90 HP & Corazza.<br/><b>Abilità [E]:</b> Carica del Leviatano (Speronamento devastante).</p>
         </div>
         <div class="class-card" onclick="selectClass('phantom')">
           <h4>👻 SPETTRALE</h4>
-          <p>Velocità e Manovra.<br/><b>Abilità [E]:</b> Velo Ombra (Intangibile ai colpi per 3.5s).</p>
+          <p>Velocità e Manovra.<br/><b>Abilità [E]:</b> Velo Ombra (Intangibile ai colpi per 3.6s).</p>
         </div>
         <div class="class-card" onclick="selectClass('necromancer')">
           <h4>💀 NEGROMANTE</h4>
-          <p>10 Cannoni Vampirici.<br/><b>Abilità [E]:</b> Maelstrom (Esplosione di 16 colpi a 360°).</p>
+          <p>Magnetismo Anime & 45% Rubavita.<br/><b>Abilità [E]:</b> Aura Drenante + 6 Teschi a Ricerca!</p>
         </div>
       </div>
     </div>
 
     <div id="rpg-bar">
-      <div id="ability-box">
-        <span id="ability-text">[E / Click DX] Abilità Pronta</span>
+      <div id="action-pills">
+        <div id="repair-box" class="pill-box" onclick="triggerRepair()">
+          <span id="repair-text">🛠️ [R] Ripara Scafo: Pronta</span>
+        </div>
+        <div id="ability-box" class="pill-box" onclick="socket.emit('useAbility')">
+          <span id="ability-text">⚡ [E / Click DX] Abilità Pronta</span>
+        </div>
       </div>
       <div id="upgrades">
         <div class="upg-btn" onclick="upgrade('hull')">[1] Scafo Corazzato</div>
@@ -179,8 +225,9 @@
       players: {},
       bullets: [],
       souls: [],
+      relics: [],
       storm: { x: 2000, y: 2000, radius: 2500 },
-      boss: { x: 2000, y: 2000, hp: 1500, maxHp: 1500, radius: 75, alive: true, angle: 0 },
+      boss: { x: 2000, y: 2000, hp: 2600, maxHp: 2600, radius: 82, alive: true, enraged: false, angle: 0 },
       serverTime: Date.now()
     };
     let particles = [];
@@ -193,18 +240,13 @@
     // =========================================================
     // ASSET LOADER + SCONTORNO AUTOMATICO SFONDO BIANCO
     // =========================================================
-    const assets = {
-      playerHull: null,
-      botHull: null,
-      waterPattern: null
-    };
+    const assets = { playerHull: null, botHull: null, waterPattern: null };
 
     function removeWhiteBackground(img, tolerance = 55) {
       const offCanvas = document.createElement('canvas');
       const w = img.naturalWidth || img.width;
       const h = img.naturalHeight || img.height;
-      offCanvas.width = w;
-      offCanvas.height = h;
+      offCanvas.width = w; offCanvas.height = h;
       const offCtx = offCanvas.getContext('2d');
       offCtx.drawImage(img, 0, 0);
 
@@ -298,7 +340,6 @@
       document.getElementById('hud').style.display = 'block';
     });
 
-    // Disabilita menu contestuale sul click destro per usarlo come Abilità Speciale
     window.addEventListener('contextmenu', e => e.preventDefault());
 
     const inputs = { up: false, down: false, left: false, right: false };
@@ -310,6 +351,7 @@
       if (k === 'd' || e.key === 'ArrowRight') inputs.right = true;
       if (e.code === 'Space') socket.emit('shoot');
       if (k === 'e' || k === 'shift') socket.emit('useAbility');
+      if (k === 'r') triggerRepair();
       if (k === '1') upgrade('hull');
       if (k === '2') upgrade('cannons');
       if (k === '3') upgrade('sails');
@@ -333,6 +375,7 @@
       }
     });
 
+    function triggerRepair() { socket.emit('startRepair'); }
     function upgrade(stat) { socket.emit('upgradeStat', stat); }
     function selectClass(c) { socket.emit('chooseClass', c); }
 
@@ -347,14 +390,31 @@
       updateHUD();
     });
 
-    socket.on('dmgNum', ({ x, y, amount, color }) => {
+    // Ricezione Banner Warning Globale per il Boss
+    let bannerTimeout = null;
+    socket.on('worldAnnouncement', ({ title, subtitle, color }) => {
+      const banner = document.getElementById('world-banner');
+      const titleEl = document.getElementById('banner-title');
+      const subEl = document.getElementById('banner-sub');
+      titleEl.innerText = title;
+      titleEl.style.color = color || '#e9d5ff';
+      banner.style.borderColor = color || '#c084fc';
+      subEl.innerText = subtitle;
+      banner.classList.add('show');
+      camera.shake = 16;
+
+      if (bannerTimeout) clearTimeout(bannerTimeout);
+      bannerTimeout = setTimeout(() => banner.classList.remove('show'), 5500);
+    });
+
+    socket.on('dmgNum', ({ x, y, text, color }) => {
       dmgNumbers.push({
         x: x + (Math.random() - 0.5) * 20,
         y,
-        text: amount > 0 ? `${amount}` : '',
+        text,
         color,
         alpha: 1,
-        vy: -1.6
+        vy: -1.5
       });
     });
 
@@ -437,11 +497,38 @@
           btn.classList.toggle('available', me.skillPoints > 0);
         });
 
+        // Aggiorna i 3 Slot Reliquie
+        for (let i = 0; i < 3; i++) {
+          const slotEl = document.getElementById(`relic-${i}`);
+          const rel = me.inventory && me.inventory[i];
+          if (rel) {
+            slotEl.className = 'relic-slot filled';
+            slotEl.style.borderColor = rel.color;
+            slotEl.innerHTML = `<span>${rel.icon}</span> <div><b>${rel.name}</b><br/><span style="font-size:0.7rem;color:#cbd5e1">${rel.desc}</span></div>`;
+          } else {
+            slotEl.className = 'relic-slot';
+            slotEl.style.borderColor = '#3b3026';
+            slotEl.innerText = '🏺 Slot Reliquia Vuoto';
+          }
+        }
+
+        // Stato Riparazione [R]
+        const repElapsed = gameState.serverTime - me.lastRepair;
+        const repRem = Math.max(0, Math.ceil((me.repairCd - repElapsed) / 1000));
+        const repTextEl = document.getElementById('repair-text');
+        if (me.isRepairing) {
+          repTextEl.innerText = '🛠️ Riparazione in corso...';
+        } else if (repRem > 0) {
+          repTextEl.innerText = `🛠️ [R] Ripara: ${repRem}s`;
+        } else {
+          repTextEl.innerText = '🛠️ [R] Ripara Scafo: Pronta';
+        }
+
         // Mostra il selettore di classe al Livello 4
         const classModal = document.getElementById('class-modal');
         classModal.style.display = (me.level >= 4 && !me.shipClass) ? 'flex' : 'none';
 
-        // Mostra stato Abilità Speciale se hai scelto la classe
+        // Stato Abilità Speciale [E]
         const abBox = document.getElementById('ability-box');
         if (me.shipClass) {
           abBox.style.display = 'flex';
@@ -449,7 +536,7 @@
           const rem = Math.max(0, Math.ceil((me.abilityCd - elapsed) / 1000));
           const classLabel = me.shipClass.toUpperCase();
           document.getElementById('ability-text').innerText =
-            rem === 0 ? `⚡ [${classLabel}] Abilità Pronta (Premi E o Click DX)` : `⏳ Ricarica Abilità: ${rem}s`;
+            rem === 0 ? `⚡ [${classLabel}] Abilità Pronta (E / Click DX)` : `⏳ Ricarica Abilità: ${rem}s`;
         } else {
           abBox.style.display = 'none';
         }
@@ -500,7 +587,6 @@
       ctx.restore();
     }
 
-    // Disegna Scogli Maledetti con Rune
     function drawRocks() {
       rocks.forEach(r => {
         ctx.save();
@@ -523,7 +609,6 @@
         ctx.fill();
         ctx.stroke();
 
-        // Runa turchese incisa nella roccia
         ctx.strokeStyle = 'rgba(45, 212, 191, 0.35)';
         ctx.lineWidth = 2;
         ctx.beginPath();
@@ -533,7 +618,39 @@
       });
     }
 
-    // Disegna il Boss Leviatano Abissale al Centro Mappa
+    function drawRelics() {
+      const t = Date.now() * 0.005;
+      (gameState.relics || []).forEach(rel => {
+        ctx.save();
+        ctx.translate(rel.x, rel.y);
+
+        // Aura dorata/mistica della reliquia in mare
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = rel.color;
+        ctx.strokeStyle = rel.color;
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.arc(0, 0, 18 + Math.sin(t) * 3, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.fillStyle = '#1e1b4b';
+        ctx.beginPath();
+        ctx.arc(0, 0, 14, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        ctx.font = '16px Inter';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(rel.icon, 0, 1);
+
+        ctx.font = '600 11px Inter';
+        ctx.fillStyle = rel.color;
+        ctx.fillText(rel.name, 0, -26);
+        ctx.restore();
+      });
+    }
+
     function drawBoss() {
       const b = gameState.boss;
       if (!b || !b.alive) return;
@@ -541,59 +658,55 @@
       ctx.save();
       ctx.translate(b.x, b.y);
 
-      // Vortice Abissale sotto il Boss
       const t = Date.now() * 0.003;
-      ctx.strokeStyle = 'rgba(168, 85, 247, 0.3)';
-      ctx.lineWidth = 4;
+      const auraColor = b.enraged ? 'rgba(244, 63, 94, 0.45)' : 'rgba(168, 85, 247, 0.3)';
+      ctx.strokeStyle = auraColor;
+      ctx.lineWidth = 5;
       ctx.beginPath();
-      ctx.arc(0, 0, b.radius + 25 + Math.sin(t * 2) * 8, 0, Math.PI * 2);
+      ctx.arc(0, 0, b.radius + 28 + Math.sin(t * 2.5) * 10, 0, Math.PI * 2);
       ctx.stroke();
 
-      // 8 Tentacoli Animati Proceduralmente
       for (let i = 0; i < 8; i++) {
         const baseA = b.angle + (Math.PI * 2 * i) / 8;
         ctx.save();
         ctx.rotate(baseA);
-        ctx.strokeStyle = '#581c87';
-        ctx.lineWidth = 12;
+        ctx.strokeStyle = b.enraged ? '#881337' : '#581c87';
+        ctx.lineWidth = 13;
         ctx.lineCap = 'round';
         ctx.beginPath();
         ctx.moveTo(30, 0);
-        const wave = Math.sin(t * 3 + i) * 24;
-        ctx.quadraticCurveTo(65, wave, 105, -wave * 0.6);
+        const wave = Math.sin(t * (b.enraged ? 5 : 3) + i) * 26;
+        ctx.quadraticCurveTo(68, wave, 112, -wave * 0.6);
         ctx.stroke();
         ctx.restore();
       }
 
-      // Corpo Centrale Corazzato del Leviatano
-      ctx.fillStyle = '#2e1065';
-      ctx.strokeStyle = '#c084fc';
+      ctx.fillStyle = b.enraged ? '#4c0519' : '#2e1065';
+      ctx.strokeStyle = b.enraged ? '#f43f5e' : '#c084fc';
       ctx.lineWidth = 4;
       ctx.beginPath();
       ctx.arc(0, 0, b.radius * 0.72, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
 
-      // Occhio Abissale Pulsante
-      ctx.shadowBlur = 20;
+      ctx.shadowBlur = 24;
       ctx.shadowColor = '#f43f5e';
       ctx.fillStyle = '#fb7185';
       ctx.beginPath();
-      ctx.arc(0, 0, 16, 0, Math.PI * 2);
+      ctx.arc(0, 0, 17, 0, Math.PI * 2);
       ctx.fill();
       ctx.shadowBlur = 0;
 
-      // Barra HP Boss
       ctx.font = '800 14px Cinzel';
       ctx.textAlign = 'center';
-      ctx.fillStyle = '#e9d5ff';
-      ctx.fillText('LEVIATANO ABISSALE [BOSS]', 0, -b.radius - 28);
+      ctx.fillStyle = b.enraged ? '#fda4af' : '#e9d5ff';
+      ctx.fillText(b.enraged ? '🔥 LEVIATANO INFEROCITO [FASE 2]' : 'LEVIATANO ABISSALE [BOSS]', 0, -b.radius - 30);
 
-      const bw = 130;
-      ctx.fillStyle = 'rgba(0,0,0,0.8)';
-      ctx.fillRect(-bw / 2, -b.radius - 20, bw, 9);
-      ctx.fillStyle = '#a855f7';
-      ctx.fillRect(-bw / 2, -b.radius - 20, bw * Math.max(0, b.hp / b.maxHp), 9);
+      const bw = 150;
+      ctx.fillStyle = 'rgba(0,0,0,0.85)';
+      ctx.fillRect(-bw / 2, -b.radius - 22, bw, 10);
+      ctx.fillStyle = b.enraged ? '#f43f5e' : '#a855f7';
+      ctx.fillRect(-bw / 2, -b.radius - 22, bw * Math.max(0, b.hp / b.maxHp), 10);
 
       ctx.restore();
     }
@@ -606,6 +719,34 @@
       vis.recoil *= 0.85;
 
       const isBuffActive = gameState.serverTime < p.activeBuffUntil;
+
+      // Cerchio Rituale Drenante del Negromante quando l'abilità è attiva
+      if (p.shipClass === 'necromancer' && isBuffActive) {
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.strokeStyle = 'rgba(232, 121, 249, 0.55)';
+        ctx.fillStyle = 'rgba(168, 85, 247, 0.08)';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(0, 0, 260, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // Effetto Particellare Verde durante la Riparazione [R]
+      if (p.isRepairing && Math.random() < 0.4) {
+        particles.push({
+          x: p.x + (Math.random() - 0.5) * 40,
+          y: p.y + (Math.random() - 0.5) * 40,
+          vx: 0,
+          vy: -1.2,
+          size: 4,
+          alpha: 0.9,
+          decay: 0.03,
+          color: '#4ade80'
+        });
+      }
 
       if (Math.abs(p.speed) > 0.6 && Math.random() < 0.5) {
         wakes.push({
@@ -637,12 +778,10 @@
       ctx.translate(p.x, p.y);
       ctx.rotate(p.angle);
 
-      // Effetto Trasparenza se Fregata Spettrale usa Velo Ombra
       if (p.shipClass === 'phantom' && isBuffActive) {
         ctx.globalAlpha = 0.38;
       }
 
-      // Aura luminosa di Classe / Buff Attivo
       if (p.shipClass) {
         ctx.shadowBlur = isBuffActive ? 26 : 10;
         ctx.shadowColor = p.shipClass === 'juggernaut' ? '#fb923c' : (p.shipClass === 'phantom' ? '#38bdf8' : '#e879f9');
@@ -659,7 +798,7 @@
         ctx.drawImage(customCanvas, -52, -52, 104, 104);
         ctx.restore();
       } else {
-        ctx.fillStyle = p. isBot ? '#191326' : '#231710';
+        ctx.fillStyle = p.isBot ? '#191326' : '#231710';
         ctx.strokeStyle = p.isBot ? '#7e22ce' : '#5c3d28';
         ctx.lineWidth = 2.5;
         ctx.beginPath();
@@ -677,18 +816,19 @@
       ctx.globalAlpha = 1;
       ctx.restore();
 
-      // Etichetta Nome + Classe + Barra HP
+      // Etichetta Nome + Reliquie Equipaggiate + Barra HP
       ctx.save();
       ctx.font = '600 12px Inter';
       ctx.textAlign = 'center';
       const classTag = p.shipClass ? ` • ${p.shipClass.toUpperCase()}` : '';
+      const relicIcons = (p.inventory || []).map(r => r.icon).join('');
       ctx.fillStyle = p.id === myId ? '#5eead4' : (p.isBot ? '#c084fc' : '#e2d9c8');
-      ctx.fillText(`${p.name} [Lv.${p.level}${classTag}]`, p.x, p.y - 54);
+      ctx.fillText(`${p.name} [Lv.${p.level}${classTag}] ${relicIcons}`, p.x, p.y - 54);
 
       const barW = 58;
       ctx.fillStyle = 'rgba(0,0,0,0.75)';
       ctx.fillRect(p.x - barW / 2, p.y - 45, barW, 6);
-      ctx.fillStyle = hpRatio > 0.4 ? '#14b8a6' : (hpRatio > 0.2 ? '#f59e0b' : '#ef4444');
+      ctx.fillStyle = p.isRepairing ? '#4ade80' : (hpRatio > 0.4 ? '#14b8a6' : (hpRatio > 0.2 ? '#f59e0b' : '#ef4444'));
       ctx.fillRect(p.x - barW / 2, p.y - 45, barW * Math.max(0, hpRatio), 6);
       ctx.restore();
     }
@@ -745,6 +885,9 @@
         ctx.restore();
       });
 
+      // Reliquie Maledette in Mare
+      drawRelics();
+
       // Scogli Maledetti
       drawRocks();
 
@@ -754,13 +897,13 @@
       // Vascelli
       Object.values(gameState.players).forEach(drawShip);
 
-      // Palle di Cannone
+      // Palle di Cannone e Teschi Spettrali Homing
       gameState.bullets.forEach(b => {
         ctx.fillStyle = b.color || '#ccfbf1';
-        ctx.shadowBlur = 12;
+        ctx.shadowBlur = b.homing ? 18 : 12;
         ctx.shadowColor = b.color || '#2dd4bf';
         ctx.beginPath();
-        ctx.arc(b.x, b.y, b.isBossBullet ? 7 : 4.5, 0, Math.PI * 2);
+        ctx.arc(b.x, b.y, b.isBossBullet ? 7.5 : (b.homing ? 6.5 : 4.5), 0, Math.PI * 2);
         ctx.fill();
       });
       ctx.shadowBlur = 0;
@@ -780,7 +923,7 @@
         ctx.globalAlpha = 1;
       }
 
-      // Numeri di Danno Fluttuanti (Floating Combat Text)
+      // Numeri di Danno Fluttuanti
       ctx.font = '700 15px Inter';
       ctx.textAlign = 'center';
       for (let i = dmgNumbers.length - 1; i >= 0; i--) {
@@ -832,13 +975,21 @@
       ctx.arc((st.x / mapSize) * size, (st.y / mapSize) * size, (st.radius / mapSize) * size, 0, Math.PI * 2);
       ctx.stroke();
 
-      // Icona Boss Leviatano sulla Minimappa
+      // Icona Boss sulla Minimappa
       if (gameState.boss && gameState.boss.alive) {
-        ctx.fillStyle = '#c084fc';
+        ctx.fillStyle = gameState.boss.enraged ? '#f43f5e' : '#c084fc';
         ctx.beginPath();
-        ctx.arc((gameState.boss.x / mapSize) * size, (gameState.boss.y / mapSize) * size, 4.5, 0, Math.PI * 2);
+        ctx.arc((gameState.boss.x / mapSize) * size, (gameState.boss.y / mapSize) * size, 5, 0, Math.PI * 2);
         ctx.fill();
       }
+
+      // Puntini Gialli per le Reliquie sulla Minimappa
+      (gameState.relics || []).forEach(rel => {
+        ctx.fillStyle = '#eab308';
+        ctx.beginPath();
+        ctx.arc((rel.x / mapSize) * size, (rel.y / mapSize) * size, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+      });
 
       Object.values(gameState.players).forEach(p => {
         ctx.fillStyle = p.id === myId ? '#2dd4bf' : (p.isBot ? '#a855f7' : '#f87171');
