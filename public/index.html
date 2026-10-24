@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Abyssal Sails .io - Dark Fantasy Pirate Royale</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Inter:wght@400;600&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Inter:wght@400;600;700&display=swap');
 
     * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
     body, html { width: 100%; height: 100%; overflow: hidden; background: #030609; font-family: 'Inter', sans-serif; color: #e2d9c8; }
@@ -13,7 +13,7 @@
 
     #vignette {
       position: fixed; inset: 0; pointer-events: none; z-index: 5;
-      background: radial-gradient(circle at center, transparent 55%, rgba(0, 0, 0, 0.85) 100%);
+      background: radial-gradient(circle at center, transparent 55%, rgba(0, 0, 0, 0.88) 100%);
     }
 
     #overlay {
@@ -23,10 +23,10 @@
       z-index: 20; backdrop-filter: blur(6px);
     }
     .panel {
-      background: rgba(14, 18, 24, 0.94);
+      background: rgba(14, 18, 24, 0.95);
       border: 1px solid #3d2f24;
       box-shadow: 0 0 50px rgba(0, 0, 0, 0.95), inset 0 0 25px rgba(45, 212, 191, 0.06);
-      padding: 36px 42px; border-radius: 8px; text-align: center; max-width: 440px; width: 90%;
+      padding: 36px 42px; border-radius: 8px; text-align: center; max-width: 460px; width: 90%;
     }
     h1 {
       font-family: 'Cinzel', serif; font-size: 2.4rem; color: #2dd4bf;
@@ -45,21 +45,46 @@
       transition: all 0.2s; letter-spacing: 1px;
     }
     button:hover { background: #115e59; box-shadow: 0 0 20px rgba(45, 212, 191, 0.4); }
-    .controls-hint { margin-top: 22px; font-size: 0.82rem; color: #94a3b8; line-height: 1.6; }
+    .controls-hint { margin-top: 22px; font-size: 0.82rem; color: #94a3b8; line-height: 1.65; }
     .controls-hint span { color: #5eead4; font-weight: 600; }
 
     #hud { position: fixed; inset: 0; pointer-events: none; z-index: 10; display: none; }
     #leaderboard {
-      position: absolute; top: 16px; right: 16px; width: 230px;
-      background: rgba(10, 14, 19, 0.85); border: 1px solid #2c2520; padding: 12px; border-radius: 6px;
+      position: absolute; top: 16px; right: 16px; width: 240px;
+      background: rgba(10, 14, 19, 0.88); border: 1px solid #2c2520; padding: 12px; border-radius: 6px;
     }
     #leaderboard h3 { font-family: 'Cinzel', serif; font-size: 0.9rem; color: #c8b69e; margin-bottom: 8px; border-bottom: 1px solid #2c2520; padding-bottom: 4px; }
     .lb-row { display: flex; justify-content: space-between; font-size: 0.82rem; margin: 4px 0; color: #94a3b8; }
     .lb-row.me { color: #2dd4bf; font-weight: 600; }
 
+    /* Pannello Evoluzione Classe al Livello 4 */
+    #class-modal {
+      position: absolute; top: 18%; left: 50%; transform: translateX(-50%);
+      display: none; flex-direction: column; align-items: center; gap: 12px;
+      background: rgba(11, 15, 22, 0.95); border: 1px solid #2dd4bf;
+      box-shadow: 0 0 35px rgba(45, 212, 191, 0.3); padding: 18px 24px; border-radius: 8px;
+      pointer-events: auto;
+    }
+    #class-modal h2 { font-family: 'Cinzel', serif; font-size: 1.15rem; color: #5eead4; letter-spacing: 1px; }
+    .class-cards { display: flex; gap: 12px; }
+    .class-card {
+      width: 175px; background: #090d14; border: 1px solid #3b3026; border-radius: 6px;
+      padding: 12px; cursor: pointer; transition: 0.2s; text-align: center;
+    }
+    .class-card:hover { border-color: #2dd4bf; transform: translateY(-4px); background: #111c24; }
+    .class-card h4 { font-family: 'Cinzel', serif; color: #f3ede2; font-size: 0.95rem; margin-bottom: 6px; }
+    .class-card p { font-size: 0.75rem; color: #94a3b8; line-height: 1.4; }
+
+    /* Barra RPG & Abilità Attiva */
     #rpg-bar {
       position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
       display: flex; flex-direction: column; align-items: center; gap: 10px; pointer-events: auto;
+    }
+    #ability-box {
+      display: none; align-items: center; gap: 10px;
+      background: rgba(15, 23, 42, 0.92); border: 1px solid #a855f7;
+      padding: 6px 16px; border-radius: 20px; font-size: 0.82rem; color: #e9d5ff;
+      box-shadow: 0 0 15px rgba(168, 85, 247, 0.35);
     }
     #upgrades { display: flex; gap: 10px; }
     .upg-btn {
@@ -69,7 +94,7 @@
     .upg-btn.available { border-color: #2dd4bf; color: #5eead4; box-shadow: 0 0 12px rgba(45, 212, 191, 0.25); }
     .upg-btn:hover.available { transform: translateY(-2px); background: #132a2e; }
     #xp-container {
-      width: 400px; height: 22px; background: #090d12; border: 1px solid #3d3126;
+      width: 420px; height: 22px; background: #090d12; border: 1px solid #3d3126;
       border-radius: 12px; overflow: hidden; position: relative;
     }
     #xp-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #0d9488, #2dd4bf); transition: width 0.2s; }
@@ -83,14 +108,14 @@
   <div id="overlay">
     <div class="panel">
       <h1>ABYSSAL SAILS</h1>
-      <p class="subtitle">Dark Fantasy Naval Battle Royale</p>
+      <p class="subtitle">Dark Fantasy Naval RPG Battle Royale</p>
       <p id="death-stats" style="color:#f87171; font-size:0.9rem; margin-bottom:14px; display:none;"></p>
       <input type="text" id="playerName" placeholder="Nome del tuo Vascello..." maxlength="18" />
       <button id="playBtn">SALPA NELL'ABISSO</button>
       <div class="controls-hint">
-        <span>W / S</span> Issa o ammaina le vele &nbsp;|&nbsp; <span>A / D</span> Timone<br/>
-        <span>SPAZIO</span> o <span>CLICK</span> Fuoco alle Bordate (Coni Laterali)<br/>
-        <span>1 - 4</span> Potenzia il vascello con le Anime raccolte
+        <span>W / S</span> Vele &nbsp;|&nbsp; <span>A / D</span> Timone &nbsp;|&nbsp; <span>SPAZIO / CLICK SX</span> Bordate<br/>
+        <span>E</span> oppure <span>CLICK DX</span> Attiva Abilità Speciale di Classe (Liv. 4)<br/>
+        <span>Al Centro Mappa:</span> Sconfiggi il <span>Leviatano Abissale</span> per Reliquie Leggendarie
       </div>
     </div>
   </div>
@@ -101,7 +126,29 @@
       <div id="lb-list"></div>
     </div>
 
+    <!-- Scelta Evoluzione al Livello 4 -->
+    <div id="class-modal">
+      <h2>SCEGLI L'EVOLUZIONE DEL VASCELLO (LIVELLO 4)</h2>
+      <div class="class-cards">
+        <div class="class-card" onclick="selectClass('juggernaut')">
+          <h4>🛡️ JUGGERNAUT</h4>
+          <p>+85 HP & Corazza.<br/><b>Abilità [E]:</b> Carica del Leviatano (Speronamento devastante).</p>
+        </div>
+        <div class="class-card" onclick="selectClass('phantom')">
+          <h4>👻 SPETTRALE</h4>
+          <p>Velocità e Manovra.<br/><b>Abilità [E]:</b> Velo Ombra (Intangibile ai colpi per 3.5s).</p>
+        </div>
+        <div class="class-card" onclick="selectClass('necromancer')">
+          <h4>💀 NEGROMANTE</h4>
+          <p>10 Cannoni Vampirici.<br/><b>Abilità [E]:</b> Maelstrom (Esplosione di 16 colpi a 360°).</p>
+        </div>
+      </div>
+    </div>
+
     <div id="rpg-bar">
+      <div id="ability-box">
+        <span id="ability-text">[E / Click DX] Abilità Pronta</span>
+      </div>
       <div id="upgrades">
         <div class="upg-btn" onclick="upgrade('hull')">[1] Scafo Corazzato</div>
         <div class="upg-btn" onclick="upgrade('cannons')">[2] Cannoni Spettrali</div>
@@ -110,7 +157,7 @@
       </div>
       <div id="xp-container">
         <div id="xp-fill"></div>
-        <div id="xp-text">Livello 1 - Anime: 0 / 50</div>
+        <div id="xp-text">Livello 1 - Anime: 0 / 45</div>
       </div>
     </div>
   </div>
@@ -123,28 +170,35 @@
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
 
-    // Se i tuoi sprite puntano in ALTO invece che a DESTRA, imposta: Math.PI / 2
     const SPRITE_ANGLE_OFFSET = 0;
 
     let myId = null;
     let mapSize = 4000;
-    let gameState = { players: {}, bullets: [], souls: [], storm: { x: 2000, y: 2000, radius: 2500 } };
+    let rocks = [];
+    let gameState = {
+      players: {},
+      bullets: [],
+      souls: [],
+      storm: { x: 2000, y: 2000, radius: 2500 },
+      boss: { x: 2000, y: 2000, hp: 1500, maxHp: 1500, radius: 75, alive: true, angle: 0 },
+      serverTime: Date.now()
+    };
     let particles = [];
     let wakes = [];
+    let dmgNumbers = [];
     let shipVisuals = {};
     let myLastShotClient = 0;
     let camera = { x: 2000, y: 2000, shake: 0 };
 
     // =========================================================
-    // ASSET LOADER + RIMOZIONE AUTOMATICA SFONDO BIANCO (AI)
+    // ASSET LOADER + SCONTORNO AUTOMATICO SFONDO BIANCO
     // =========================================================
     const assets = {
-      playerHull: null, // Conterrà il Canvas scontornato
+      playerHull: null,
       botHull: null,
       waterPattern: null
     };
 
-    // Algoritmo Flood-Fill dai bordi per bucare lo sfondo bianco/chiaro delle immagini AI
     function removeWhiteBackground(img, tolerance = 55) {
       const offCanvas = document.createElement('canvas');
       const w = img.naturalWidth || img.width;
@@ -156,29 +210,17 @@
 
       const imgData = offCtx.getImageData(0, 0, w, h);
       const data = imgData.data;
-
-      // Se l'angolo (0,0) è già trasparente, non serve scontornare
       if (data[3] < 10) return offCanvas;
 
-      // Campiona il colore di sfondo dall'angolo in alto a sinistra
       const bgR = data[0], bgG = data[1], bgB = data[2];
-
       const visited = new Uint8Array(w * h);
       const queue = [];
 
-      // Parte da tutti i pixel lungo i 4 bordi dell'immagine
-      for (let x = 0; x < w; x++) {
-        queue.push(x, 0);
-        queue.push(x, h - 1);
-      }
-      for (let y = 0; y < h; y++) {
-        queue.push(0, y);
-        queue.push(w - 1, y);
-      }
+      for (let x = 0; x < w; x++) { queue.push(x, 0, x, h - 1); }
+      for (let y = 0; y < h; y++) { queue.push(0, y, w - 1, y); }
 
       function colorDiff(idx) {
         const r = data[idx], g = data[idx + 1], b = data[idx + 2];
-        // Distanza dal colore di sfondo + controllo luminosità alta (tipica dello sfondo bianco/grigio AI)
         const distBg = Math.abs(r - bgR) + Math.abs(g - bgG) + Math.abs(b - bgB);
         const isVeryBright = (r > 215 && g > 215 && b > 215);
         return isVeryBright ? 0 : distBg / 3;
@@ -189,27 +231,17 @@
         const x = queue[head++];
         const y = queue[head++];
         if (x < 0 || x >= w || y < 0 || y >= h) continue;
-
         const pos = y * w + x;
         if (visited[pos]) continue;
         visited[pos] = 1;
 
         const idx = pos * 4;
         const diff = colorDiff(idx);
-
         if (diff <= tolerance) {
-          // Cancella il pixel di sfondo
           data[idx + 3] = 0;
-
-          // Espandi ai 4 pixel vicini
-          queue.push(x + 1, y);
-          queue.push(x - 1, y);
-          queue.push(x, y + 1);
-          queue.push(x, y - 1);
+          queue.push(x + 1, y, x - 1, y, x, y + 1, x, y - 1);
         } else if (diff <= tolerance + 25) {
-          // Anti-aliasing morbido sui bordi della nave per evitare l'alone bianco
-          const factor = (diff - tolerance) / 25;
-          data[idx + 3] = Math.floor(data[idx + 3] * factor);
+          data[idx + 3] = Math.floor(data[idx + 3] * ((diff - tolerance) / 25));
         }
       }
 
@@ -217,27 +249,17 @@
       return offCanvas;
     }
 
-    // 1. Carica e scontorna Nave Giocatore
     const rawPlayerImg = new Image();
     rawPlayerImg.src = '/assets/ship_player.png';
-    rawPlayerImg.onload = () => {
-      assets.playerHull = removeWhiteBackground(rawPlayerImg);
-      console.log('✅ ship_player.png caricata e scontornata!');
-    };
+    rawPlayerImg.onload = () => { assets.playerHull = removeWhiteBackground(rawPlayerImg); };
 
-    // 2. Carica e scontorna Nave Bot
     const rawBotImg = new Image();
     rawBotImg.src = '/assets/ship_bot.png';
-    rawBotImg.onload = () => {
-      assets.botHull = removeWhiteBackground(rawBotImg);
-      console.log('✅ ship_bot.png caricata e scontornata!');
-    };
+    rawBotImg.onload = () => { assets.botHull = removeWhiteBackground(rawBotImg); };
 
-    // 3. Fallback procedurale acqua + Caricamento reale di water_tile.png
     function createFallbackWaterPattern() {
       const pCanvas = document.createElement('canvas');
-      pCanvas.width = 256;
-      pCanvas.height = 256;
+      pCanvas.width = 256; pCanvas.height = 256;
       const pCtx = pCanvas.getContext('2d');
       pCtx.fillStyle = '#04090e';
       pCtx.fillRect(0, 0, 256, 256);
@@ -255,14 +277,11 @@
     const waterTileImg = new Image();
     waterTileImg.src = '/assets/water_tile.png';
     waterTileImg.onload = () => {
-      // Ridimensiona la tile su un quadrato 512x512 per una ripetizione fluida
       const tileCanvas = document.createElement('canvas');
-      tileCanvas.width = 512;
-      tileCanvas.height = 512;
+      tileCanvas.width = 512; tileCanvas.height = 512;
       const tileCtx = tileCanvas.getContext('2d');
       tileCtx.drawImage(waterTileImg, 0, 0, 512, 512);
       assets.waterPattern = ctx.createPattern(tileCanvas, 'repeat');
-      console.log('✅ water_tile.png caricata con successo!');
     };
 
     function resize() {
@@ -279,6 +298,9 @@
       document.getElementById('hud').style.display = 'block';
     });
 
+    // Disabilita menu contestuale sul click destro per usarlo come Abilità Speciale
+    window.addEventListener('contextmenu', e => e.preventDefault());
+
     const inputs = { up: false, down: false, left: false, right: false };
     window.addEventListener('keydown', (e) => {
       const k = e.key.toLowerCase();
@@ -286,7 +308,8 @@
       if (k === 's' || e.key === 'ArrowDown') inputs.down = true;
       if (k === 'a' || e.key === 'ArrowLeft') inputs.left = true;
       if (k === 'd' || e.key === 'ArrowRight') inputs.right = true;
-      if (e.code === 'Space') triggerShoot();
+      if (e.code === 'Space') socket.emit('shoot');
+      if (k === 'e' || k === 'shift') socket.emit('useAbility');
       if (k === '1') upgrade('hull');
       if (k === '2') upgrade('cannons');
       if (k === '3') upgrade('sails');
@@ -303,23 +326,20 @@
       socket.emit('inputs', inputs);
     });
 
-    window.addEventListener('mousedown', () => {
+    window.addEventListener('mousedown', (e) => {
       if (document.getElementById('overlay').style.display === 'none') {
-        triggerShoot();
+        if (e.button === 0) socket.emit('shoot');
+        if (e.button === 2) socket.emit('useAbility');
       }
     });
 
-    function triggerShoot() {
-      socket.emit('shoot');
-    }
-
-    function upgrade(stat) {
-      socket.emit('upgradeStat', stat);
-    }
+    function upgrade(stat) { socket.emit('upgradeStat', stat); }
+    function selectClass(c) { socket.emit('chooseClass', c); }
 
     socket.on('init', (data) => {
       myId = data.id;
       mapSize = data.mapSize;
+      rocks = data.rocks || [];
     });
 
     socket.on('state', (state) => {
@@ -327,14 +347,39 @@
       updateHUD();
     });
 
+    socket.on('dmgNum', ({ x, y, amount, color }) => {
+      dmgNumbers.push({
+        x: x + (Math.random() - 0.5) * 20,
+        y,
+        text: amount > 0 ? `${amount}` : '',
+        color,
+        alpha: 1,
+        vy: -1.6
+      });
+    });
+
+    socket.on('abilityFx', ({ x, y, type }) => {
+      const color = type === 'juggernaut' ? '#fb923c' : (type === 'phantom' ? '#38bdf8' : '#e879f9');
+      for (let i = 0; i < 28; i++) {
+        const a = (Math.PI * 2 * i) / 28;
+        particles.push({
+          x, y,
+          vx: Math.cos(a) * (Math.random() * 6 + 3),
+          vy: Math.sin(a) * (Math.random() * 6 + 3),
+          size: Math.random() * 6 + 4,
+          alpha: 1,
+          decay: 0.025,
+          color
+        });
+      }
+    });
+
     socket.on('cannonFired', ({ x, y, id }) => {
       if (id === myId) {
         camera.shake = 11;
         myLastShotClient = Date.now();
       }
-      if (shipVisuals[id]) {
-        shipVisuals[id].recoil = 1.0;
-      }
+      if (shipVisuals[id]) shipVisuals[id].recoil = 1.0;
 
       const shooter = gameState.players[id];
       const baseAngle = shooter ? shooter.angle : 0;
@@ -358,7 +403,7 @@
     });
 
     socket.on('hitEffect', ({ x, y }) => {
-      for (let i = 0; i < 20; i++) {
+      for (let i = 0; i < 18; i++) {
         particles.push({
           x, y,
           vx: (Math.random() - 0.5) * 10,
@@ -391,6 +436,23 @@
         document.querySelectorAll('.upg-btn').forEach(btn => {
           btn.classList.toggle('available', me.skillPoints > 0);
         });
+
+        // Mostra il selettore di classe al Livello 4
+        const classModal = document.getElementById('class-modal');
+        classModal.style.display = (me.level >= 4 && !me.shipClass) ? 'flex' : 'none';
+
+        // Mostra stato Abilità Speciale se hai scelto la classe
+        const abBox = document.getElementById('ability-box');
+        if (me.shipClass) {
+          abBox.style.display = 'flex';
+          const elapsed = gameState.serverTime - me.lastAbility;
+          const rem = Math.max(0, Math.ceil((me.abilityCd - elapsed) / 1000));
+          const classLabel = me.shipClass.toUpperCase();
+          document.getElementById('ability-text').innerText =
+            rem === 0 ? `⚡ [${classLabel}] Abilità Pronta (Premi E o Click DX)` : `⏳ Ricarica Abilità: ${rem}s`;
+        } else {
+          abBox.style.display = 'none';
+        }
       }
 
       const sorted = Object.values(gameState.players).sort((a, b) => b.level - a.level || b.kills - a.kills).slice(0, 6);
@@ -406,7 +468,7 @@
     function drawBroadsideAim(p) {
       const reloadProgress = Math.min(1, (Date.now() - myLastShotClient) / p.reloadTime);
       const range = 280;
-      const spread = 0.24;
+      const spread = p.shipClass === 'necromancer' ? 0.32 : 0.24;
 
       ctx.save();
       ctx.translate(p.x, p.y);
@@ -438,14 +500,112 @@
       ctx.restore();
     }
 
-    function drawShip(p) {
-      if (!shipVisuals[p.id]) {
-        shipVisuals[p.id] = { sailBillow: 0, recoil: 0 };
+    // Disegna Scogli Maledetti con Rune
+    function drawRocks() {
+      rocks.forEach(r => {
+        ctx.save();
+        ctx.translate(r.x, r.y);
+        ctx.fillStyle = '#0f172a';
+        ctx.strokeStyle = '#334155';
+        ctx.lineWidth = 3;
+
+        ctx.beginPath();
+        const pts = 9;
+        for (let i = 0; i < pts; i++) {
+          const a = (Math.PI * 2 * i) / pts;
+          const rad = r.radius * (0.82 + Math.sin(r.seed + i * 2.1) * 0.18);
+          const px = Math.cos(a) * rad;
+          const py = Math.sin(a) * rad;
+          if (i === 0) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Runa turchese incisa nella roccia
+        ctx.strokeStyle = 'rgba(45, 212, 191, 0.35)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(0, 0, r.radius * 0.35, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      });
+    }
+
+    // Disegna il Boss Leviatano Abissale al Centro Mappa
+    function drawBoss() {
+      const b = gameState.boss;
+      if (!b || !b.alive) return;
+
+      ctx.save();
+      ctx.translate(b.x, b.y);
+
+      // Vortice Abissale sotto il Boss
+      const t = Date.now() * 0.003;
+      ctx.strokeStyle = 'rgba(168, 85, 247, 0.3)';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(0, 0, b.radius + 25 + Math.sin(t * 2) * 8, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // 8 Tentacoli Animati Proceduralmente
+      for (let i = 0; i < 8; i++) {
+        const baseA = b.angle + (Math.PI * 2 * i) / 8;
+        ctx.save();
+        ctx.rotate(baseA);
+        ctx.strokeStyle = '#581c87';
+        ctx.lineWidth = 12;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(30, 0);
+        const wave = Math.sin(t * 3 + i) * 24;
+        ctx.quadraticCurveTo(65, wave, 105, -wave * 0.6);
+        ctx.stroke();
+        ctx.restore();
       }
+
+      // Corpo Centrale Corazzato del Leviatano
+      ctx.fillStyle = '#2e1065';
+      ctx.strokeStyle = '#c084fc';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(0, 0, b.radius * 0.72, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // Occhio Abissale Pulsante
+      ctx.shadowBlur = 20;
+      ctx.shadowColor = '#f43f5e';
+      ctx.fillStyle = '#fb7185';
+      ctx.beginPath();
+      ctx.arc(0, 0, 16, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
+      // Barra HP Boss
+      ctx.font = '800 14px Cinzel';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#e9d5ff';
+      ctx.fillText('LEVIATANO ABISSALE [BOSS]', 0, -b.radius - 28);
+
+      const bw = 130;
+      ctx.fillStyle = 'rgba(0,0,0,0.8)';
+      ctx.fillRect(-bw / 2, -b.radius - 20, bw, 9);
+      ctx.fillStyle = '#a855f7';
+      ctx.fillRect(-bw / 2, -b.radius - 20, bw * Math.max(0, b.hp / b.maxHp), 9);
+
+      ctx.restore();
+    }
+
+    function drawShip(p) {
+      if (!shipVisuals[p.id]) shipVisuals[p.id] = { sailBillow: 0, recoil: 0 };
       const vis = shipVisuals[p.id];
       const targetBillow = Math.min(1, Math.abs(p.speed) / p.maxSpeed);
       vis.sailBillow += (targetBillow - vis.sailBillow) * 0.1;
       vis.recoil *= 0.85;
+
+      const isBuffActive = gameState.serverTime < p.activeBuffUntil;
 
       if (Math.abs(p.speed) > 0.6 && Math.random() < 0.5) {
         wakes.push({
@@ -477,28 +637,29 @@
       ctx.translate(p.x, p.y);
       ctx.rotate(p.angle);
 
+      // Effetto Trasparenza se Fregata Spettrale usa Velo Ombra
+      if (p.shipClass === 'phantom' && isBuffActive) {
+        ctx.globalAlpha = 0.38;
+      }
+
+      // Aura luminosa di Classe / Buff Attivo
+      if (p.shipClass) {
+        ctx.shadowBlur = isBuffActive ? 26 : 10;
+        ctx.shadowColor = p.shipClass === 'juggernaut' ? '#fb923c' : (p.shipClass === 'phantom' ? '#38bdf8' : '#e879f9');
+      }
+
       const scaleRecoil = 1 - vis.recoil * 0.06;
       ctx.scale(scaleRecoil, 1 + vis.recoil * 0.08);
 
       const customCanvas = p.isBot ? assets.botHull : assets.playerHull;
 
       if (customCanvas) {
-        // Disegna lo sprite AI scontornato automaticamente
         ctx.save();
         ctx.rotate(SPRITE_ANGLE_OFFSET);
         ctx.drawImage(customCanvas, -52, -52, 104, 104);
         ctx.restore();
       } else {
-        // Fallback Vettoriale se il file PNG non è presente
-        ctx.fillStyle = '#475569';
-        ctx.beginPath();
-        ctx.moveTo(48, 0);
-        ctx.lineTo(32, -5);
-        ctx.lineTo(32, 5);
-        ctx.closePath();
-        ctx.fill();
-
-        ctx.fillStyle = p.isBot ? '#191326' : '#231710';
+        ctx.fillStyle = p. isBot ? '#191326' : '#231710';
         ctx.strokeStyle = p.isBot ? '#7e22ce' : '#5c3d28';
         ctx.lineWidth = 2.5;
         ctx.beginPath();
@@ -510,47 +671,25 @@
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
-
-        const cannonOffset = vis.recoil * 4;
-        ctx.fillStyle = '#090d16';
-        [-15, 0, 15].forEach(cx => {
-          ctx.fillRect(cx - 3, -22 + cannonOffset, 6, 7);
-          ctx.fillRect(cx - 3, 15 - cannonOffset, 6, 7);
-        });
-
-        const windWave = Math.sin(Date.now() * 0.008 + p.x * 0.01) * 2;
-        const sailCurve = 6 + vis.sailBillow * 14 + windWave;
-
-        [{ mastX: 12, width: 28 }, { mastX: -14, width: 22 }].forEach(mast => {
-          ctx.fillStyle = p.isBot ? 'rgba(107, 33, 168, 0.88)' : 'rgba(15, 23, 42, 0.92)';
-          ctx.strokeStyle = p.isBot ? '#a855f7' : '#334155';
-          ctx.lineWidth = 1.2;
-
-          ctx.beginPath();
-          ctx.moveTo(mast.mastX, -mast.width);
-          ctx.quadraticCurveTo(mast.mastX + sailCurve, 0, mast.mastX, mast.width);
-          ctx.lineTo(mast.mastX - 5, mast.width * 0.85);
-          ctx.quadraticCurveTo(mast.mastX + sailCurve * 0.4, 0, mast.mastX - 5, -mast.width * 0.85);
-          ctx.closePath();
-          ctx.fill();
-          ctx.stroke();
-        });
       }
 
+      ctx.shadowBlur = 0;
+      ctx.globalAlpha = 1;
       ctx.restore();
 
-      // Nome e Barra HP
+      // Etichetta Nome + Classe + Barra HP
       ctx.save();
       ctx.font = '600 12px Inter';
       ctx.textAlign = 'center';
+      const classTag = p.shipClass ? ` • ${p.shipClass.toUpperCase()}` : '';
       ctx.fillStyle = p.id === myId ? '#5eead4' : (p.isBot ? '#c084fc' : '#e2d9c8');
-      ctx.fillText(`${p.name} [Lv.${p.level}]`, p.x, p.y - 52);
+      ctx.fillText(`${p.name} [Lv.${p.level}${classTag}]`, p.x, p.y - 54);
 
-      const barW = 56;
+      const barW = 58;
       ctx.fillStyle = 'rgba(0,0,0,0.75)';
-      ctx.fillRect(p.x - barW / 2, p.y - 44, barW, 6);
+      ctx.fillRect(p.x - barW / 2, p.y - 45, barW, 6);
       ctx.fillStyle = hpRatio > 0.4 ? '#14b8a6' : (hpRatio > 0.2 ? '#f59e0b' : '#ef4444');
-      ctx.fillRect(p.x - barW / 2, p.y - 44, barW * Math.max(0, hpRatio), 6);
+      ctx.fillRect(p.x - barW / 2, p.y - 45, barW * Math.max(0, hpRatio), 6);
       ctx.restore();
     }
 
@@ -573,31 +712,17 @@
       ctx.save();
       ctx.translate(canvas.width / 2 - camera.x + shakeX, canvas.height / 2 - camera.y + shakeY);
 
-      // 1. Disegna la tile water_tile.png ripetuta su tutta la mappa
       if (assets.waterPattern) {
         ctx.fillStyle = assets.waterPattern;
         ctx.fillRect(-1000, -1000, mapSize + 2000, mapSize + 2000);
       }
 
-      // Griglia leggera sopra l'acqua
-      ctx.strokeStyle = 'rgba(20, 45, 58, 0.2)';
-      ctx.lineWidth = 1;
-      for (let x = 0; x <= mapSize; x += 160) {
-        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, mapSize); ctx.stroke();
-      }
-      for (let y = 0; y <= mapSize; y += 160) {
-        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(mapSize, y); ctx.stroke();
-      }
-
-      // 2. Scie d'Acqua
+      // Scie d'Acqua
       for (let i = wakes.length - 1; i >= 0; i--) {
         const w = wakes[i];
         w.radius += 0.35;
         w.alpha -= 0.008;
-        if (w.alpha <= 0) {
-          wakes.splice(i, 1);
-          continue;
-        }
+        if (w.alpha <= 0) { wakes.splice(i, 1); continue; }
         ctx.strokeStyle = w.color;
         ctx.globalAlpha = w.alpha;
         ctx.lineWidth = 1.5;
@@ -607,7 +732,7 @@
         ctx.globalAlpha = 1;
       }
 
-      // 3. Anime Abissali
+      // Anime Abissali
       const pulse = Math.sin(Date.now() * 0.006) * 2.5;
       gameState.souls.forEach(s => {
         ctx.save();
@@ -615,35 +740,38 @@
         ctx.shadowColor = s.isBossDrop ? '#f59e0b' : '#2dd4bf';
         ctx.fillStyle = s.isBossDrop ? '#fbbf24' : '#5eead4';
         ctx.beginPath();
-        ctx.arc(s.x, s.y, (s.isBossDrop ? 8.5 : 5.5) + pulse * 0.4, 0, Math.PI * 2);
+        ctx.arc(s.x, s.y, (s.isBossDrop ? 9 : 5.5) + pulse * 0.4, 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
       });
 
-      // 4. Vascelli
+      // Scogli Maledetti
+      drawRocks();
+
+      // Boss Leviatano Abissale
+      drawBoss();
+
+      // Vascelli
       Object.values(gameState.players).forEach(drawShip);
 
-      // 5. Palle di Cannone
-      ctx.fillStyle = '#ccfbf1';
-      ctx.shadowBlur = 12;
-      ctx.shadowColor = '#2dd4bf';
+      // Palle di Cannone
       gameState.bullets.forEach(b => {
+        ctx.fillStyle = b.color || '#ccfbf1';
+        ctx.shadowBlur = 12;
+        ctx.shadowColor = b.color || '#2dd4bf';
         ctx.beginPath();
-        ctx.arc(b.x, b.y, 4.5, 0, Math.PI * 2);
+        ctx.arc(b.x, b.y, b.isBossBullet ? 7 : 4.5, 0, Math.PI * 2);
         ctx.fill();
       });
       ctx.shadowBlur = 0;
 
-      // 6. Particelle
+      // Particelle
       for (let i = particles.length - 1; i >= 0; i--) {
         const pt = particles[i];
         pt.x += pt.vx;
         pt.y += pt.vy;
         pt.alpha -= pt.decay || 0.025;
-        if (pt.alpha <= 0) {
-          particles.splice(i, 1);
-          continue;
-        }
+        if (pt.alpha <= 0) { particles.splice(i, 1); continue; }
         ctx.fillStyle = pt.color;
         ctx.globalAlpha = pt.alpha;
         ctx.beginPath();
@@ -652,7 +780,21 @@
         ctx.globalAlpha = 1;
       }
 
-      // 7. Cerchio Tempesta Battle Royale
+      // Numeri di Danno Fluttuanti (Floating Combat Text)
+      ctx.font = '700 15px Inter';
+      ctx.textAlign = 'center';
+      for (let i = dmgNumbers.length - 1; i >= 0; i--) {
+        const dn = dmgNumbers[i];
+        dn.y += dn.vy;
+        dn.alpha -= 0.022;
+        if (dn.alpha <= 0) { dmgNumbers.splice(i, 1); continue; }
+        ctx.globalAlpha = dn.alpha;
+        ctx.fillStyle = dn.color;
+        ctx.fillText(dn.text, dn.x, dn.y);
+        ctx.globalAlpha = 1;
+      }
+
+      // Cerchio Tempesta Battle Royale
       const st = gameState.storm;
       ctx.strokeStyle = 'rgba(220, 38, 38, 0.8)';
       ctx.lineWidth = 8;
@@ -672,12 +814,12 @@
     }
 
     function drawMinimap() {
-      const size = 140;
+      const size = 145;
       const pad = 16;
       ctx.save();
       ctx.translate(pad, pad);
 
-      ctx.fillStyle = 'rgba(8, 13, 19, 0.88)';
+      ctx.fillStyle = 'rgba(8, 13, 19, 0.9)';
       ctx.strokeStyle = '#3b3026';
       ctx.lineWidth = 1.5;
       ctx.fillRect(0, 0, size, size);
@@ -689,6 +831,14 @@
       ctx.beginPath();
       ctx.arc((st.x / mapSize) * size, (st.y / mapSize) * size, (st.radius / mapSize) * size, 0, Math.PI * 2);
       ctx.stroke();
+
+      // Icona Boss Leviatano sulla Minimappa
+      if (gameState.boss && gameState.boss.alive) {
+        ctx.fillStyle = '#c084fc';
+        ctx.beginPath();
+        ctx.arc((gameState.boss.x / mapSize) * size, (gameState.boss.y / mapSize) * size, 4.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
 
       Object.values(gameState.players).forEach(p => {
         ctx.fillStyle = p.id === myId ? '#2dd4bf' : (p.isBot ? '#a855f7' : '#f87171');
