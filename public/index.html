@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Abyssal Sails .io - Dark Fantasy Pirate Royale</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Inter:wght@400;600&display=swap');
+
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    body, html { width: 100%; height: 100%; overflow: hidden; background: #030609; font-family: 'Inter', sans-serif; color: #e2d9c8; }
+    canvas { display: block; }
+
+    #vignette {
+      position: fixed; inset: 0; pointer-events: none; z-index: 5;
+      background: radial-gradient(circle at center, transparent 55%, rgba(0, 0, 0, 0.85) 100%);
+    }
+
+    #overlay {
+      position: fixed; inset: 0;
+      background: radial-gradient(circle at center, rgba(12, 22, 28, 0.85) 0%, rgba(3, 5, 8, 0.96) 100%);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      z-index: 20; backdrop-filter: blur(6px);
+    }
+    .panel {
+      background: rgba(14, 18, 24, 0.94);
+      border: 1px solid #3d2f24;
+      box-shadow: 0 0 50px rgba(0, 0, 0, 0.95), inset 0 0 25px rgba(45, 212, 191, 0.06);
+      padding: 36px 42px; border-radius: 8px; text-align: center; max-width: 440px; width: 90%;
+    }
+    h1 {
+      font-family: 'Cinzel', serif; font-size: 2.4rem; color: #2dd4bf;
+      text-shadow: 0 0 18px rgba(45, 212, 191, 0.45); letter-spacing: 2px; margin-bottom: 8px;
+    }
+    .subtitle { color: #8c7f70; font-size: 0.92rem; margin-bottom: 24px; }
+    input {
+      width: 100%; padding: 12px 16px; background: #090d12; border: 1px solid #47382b;
+      color: #f3ede2; font-size: 1rem; border-radius: 4px; margin-bottom: 16px; outline: none; text-align: center;
+    }
+    input:focus { border-color: #2dd4bf; box-shadow: 0 0 10px rgba(45, 212, 191, 0.25); }
+    button {
+      width: 100%; padding: 13px; font-family: 'Cinzel', serif; font-weight: 800; font-size: 1.05rem;
+      background: linear-gradient(180deg, #134e4a 0%, #0f292a 100%);
+      color: #5eead4; border: 1px solid #2dd4bf; border-radius: 4px; cursor: pointer;
+      transition: all 0.2s; letter-spacing: 1px;
+    }
+    button:hover { background: #115e59; box-shadow: 0 0 20px rgba(45, 212, 191, 0.4); }
+    .controls-hint { margin-top: 22px; font-size: 0.82rem; color: #94a3b8; line-height: 1.6; }
+    .controls-hint span { color: #5eead4; font-weight: 600; }
+
+    #hud { position: fixed; inset: 0; pointer-events: none; z-index: 10; display: none; }
+    #leaderboard {
+      position: absolute; top: 16px; right: 16px; width: 230px;
+      background: rgba(10, 14, 19, 0.85); border: 1px solid #2c2520; padding: 12px; border-radius: 6px;
+    }
+    #leaderboard h3 { font-family: 'Cinzel', serif; font-size: 0.9rem; color: #c8b69e; margin-bottom: 8px; border-bottom: 1px solid #2c2520; padding-bottom: 4px; }
+    .lb-row { display: flex; justify-content: space-between; font-size: 0.82rem; margin: 4px 0; color: #94a3b8; }
+    .lb-row.me { color: #2dd4bf; font-weight: 600; }
+
+    #rpg-bar {
+      position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+      display: flex; flex-direction: column; align-items: center; gap: 10px; pointer-events: auto;
+    }
+    #upgrades { display: flex; gap: 10px; }
+    .upg-btn {
+      background: rgba(14, 20, 27, 0.92); border: 1px solid #3b3026; color: #d6cbb9;
+      padding: 8px 14px; border-radius: 5px; font-size: 0.8rem; cursor: pointer; transition: 0.15s;
+    }
+    .upg-btn.available { border-color: #2dd4bf; color: #5eead4; box-shadow: 0 0 12px rgba(45, 212, 191, 0.25); }
+    .upg-btn:hover.available { transform: translateY(-2px); background: #132a2e; }
+    #xp-container {
+      width: 400px; height: 22px; background: #090d12; border: 1px solid #3d3126;
+      border-radius: 12px; overflow: hidden; position: relative;
+    }
+    #xp-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #0d9488, #2dd4bf); transition: width 0.2s; }
+    #xp-text { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 600; text-shadow: 0 1px 3px #000; }
+  </style>
+</head>
+<body>
+
+  <div id="vignette"></div>
+
+  <div id="overlay">
+    <div class="panel">
+      <h1>ABYSSAL SAILS</h1>
+      <p class="subtitle">Dark Fantasy Naval Battle Royale</p>
+      <p id="death-stats" style="color:#f87171; font-size:0.9rem; margin-bottom:14px; display:none;"></p>
+      <input type="text" id="playerName" placeholder="Nome del tuo Vascello..." maxlength="18" />
+      <button id="playBtn">SALPA NELL'ABISSO</button>
+      <div class="controls-hint">
+        <span>W / S</span> Issa o ammaina le vele &nbsp;|&nbsp; <span>A / D</span> Timone<br/>
+        <span>SPAZIO</span> o <span>CLICK</span> Fuoco alle Bordate (Coni Laterali)<br/>
+        <span>1 - 4</span> Potenzia il vascello con le Anime raccolte
+      </div>
+    </div>
+  </div>
+
+  <div id="hud">
+    <div id="leaderboard">
+      <h3>TERRORE DEI MARI</h3>
+      <div id="lb-list"></div>
+    </div>
+
+    <div id="rpg-bar">
+      <div id="upgrades">
+        <div class="upg-btn" onclick="upgrade('hull')">[1] Scafo Corazzato</div>
+        <div class="upg-btn" onclick="upgrade('cannons')">[2] Cannoni Spettrali</div>
+        <div class="upg-btn" onclick="upgrade('sails')">[3] Vele Lacerate</div>
+        <div class="upg-btn" onclick="upgrade('reload')">[4] Ciurma Scheletrica</div>
+      </div>
+      <div id="xp-container">
+        <div id="xp-fill"></div>
+        <div id="xp-text">Livello 1 - Anime: 0 / 50</div>
+      </div>
+    </div>
+  </div>
+
+  <canvas id="gameCanvas"></canvas>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // Se i tuoi sprite puntano in ALTO invece che a DESTRA, imposta: Math.PI / 2
+    const SPRITE_ANGLE_OFFSET = 0;
+
+    let myId = null;
+    let mapSize = 4000;
+    let gameState = { players: {}, bullets: [], souls: [], storm: { x: 2000, y: 2000, radius: 2500 } };
+    let particles = [];
+    let wakes = [];
+    let shipVisuals = {};
+    let myLastShotClient = 0;
+    let camera = { x: 2000, y: 2000, shake: 0 };
+
+    // =========================================================
+    // ASSET LOADER + RIMOZIONE AUTOMATICA SFONDO BIANCO (AI)
+    // =========================================================
+    const assets = {
+      playerHull: null, // Conterrà il Canvas scontornato
+      botHull: null,
+      waterPattern: null
+    };
+
+    // Algoritmo Flood-Fill dai bordi per bucare lo sfondo bianco/chiaro delle immagini AI
+    function removeWhiteBackground(img, tolerance = 55) {
+      const offCanvas = document.createElement('canvas');
+      const w = img.naturalWidth || img.width;
+      const h = img.naturalHeight || img.height;
+      offCanvas.width = w;
+      offCanvas.height = h;
+      const offCtx = offCanvas.getContext('2d');
+      offCtx.drawImage(img, 0, 0);
+
+      const imgData = offCtx.getImageData(0, 0, w, h);
+      const data = imgData.data;
+
+      // Se l'angolo (0,0) è già trasparente, non serve scontornare
+      if (data[3] < 10) return offCanvas;
+
+      // Campiona il colore di sfondo dall'angolo in alto a sinistra
+      const bgR = data[0], bgG = data[1], bgB = data[2];
+
+      const visited = new Uint8Array(w * h);
+      const queue = [];
+
+      // Parte da tutti i pixel lungo i 4 bordi dell'immagine
+      for (let x = 0; x < w; x++) {
+        queue.push(x, 0);
+        queue.push(x, h - 1);
+      }
+      for (let y = 0; y < h; y++) {
+        queue.push(0, y);
+        queue.push(w - 1, y);
+      }
+
+      function colorDiff(idx) {
+        const r = data[idx], g = data[idx + 1], b = data[idx + 2];
+        // Distanza dal colore di sfondo + controllo luminosità alta (tipica dello sfondo bianco/grigio AI)
+        const distBg = Math.abs(r - bgR) + Math.abs(g - bgG) + Math.abs(b - bgB);
+        const isVeryBright = (r > 215 && g > 215 && b > 215);
+        return isVeryBright ? 0 : distBg / 3;
+      }
+
+      let head = 0;
+      while (head < queue.length) {
+        const x = queue[head++];
+        const y = queue[head++];
+        if (x < 0 || x >= w || y < 0 || y >= h) continue;
+
+        const pos = y * w + x;
+        if (visited[pos]) continue;
+        visited[pos] = 1;
+
+        const idx = pos * 4;
+        const diff = colorDiff(idx);
+
+        if (diff <= tolerance) {
+          // Cancella il pixel di sfondo
+          data[idx + 3] = 0;
+
+          // Espandi ai 4 pixel vicini
+          queue.push(x + 1, y);
+          queue.push(x - 1, y);
+          queue.push(x, y + 1);
+          queue.push(x, y - 1);
+        } else if (diff <= tolerance + 25) {
+          // Anti-aliasing morbido sui bordi della nave per evitare l'alone bianco
+          const factor = (diff - tolerance) / 25;
+          data[idx + 3] = Math.floor(data[idx + 3] * factor);
+        }
+      }
+
+      offCtx.putImageData(imgData, 0, 0);
+      return offCanvas;
+    }
+
+    // 1. Carica e scontorna Nave Giocatore
+    const rawPlayerImg = new Image();
+    rawPlayerImg.src = '/assets/ship_player.png';
+    rawPlayerImg.onload = () => {
+      assets.playerHull = removeWhiteBackground(rawPlayerImg);
+      console.log('✅ ship_player.png caricata e scontornata!');
+    };
+
+    // 2. Carica e scontorna Nave Bot
+    const rawBotImg = new Image();
+    rawBotImg.src = '/assets/ship_bot.png';
+    rawBotImg.onload = () => {
+      assets.botHull = removeWhiteBackground(rawBotImg);
+      console.log('✅ ship_bot.png caricata e scontornata!');
+    };
+
+    // 3. Fallback procedurale acqua + Caricamento reale di water_tile.png
+    function createFallbackWaterPattern() {
+      const pCanvas = document.createElement('canvas');
+      pCanvas.width = 256;
+      pCanvas.height = 256;
+      const pCtx = pCanvas.getContext('2d');
+      pCtx.fillStyle = '#04090e';
+      pCtx.fillRect(0, 0, 256, 256);
+      pCtx.strokeStyle = 'rgba(19, 78, 74, 0.18)';
+      pCtx.lineWidth = 2;
+      for (let i = 0; i < 18; i++) {
+        pCtx.beginPath();
+        pCtx.arc((i * 37) % 220, (i * 53) % 240, 24, 0.2, Math.PI - 0.2);
+        pCtx.stroke();
+      }
+      assets.waterPattern = ctx.createPattern(pCanvas, 'repeat');
+    }
+    createFallbackWaterPattern();
+
+    const waterTileImg = new Image();
+    waterTileImg.src = '/assets/water_tile.png';
+    waterTileImg.onload = () => {
+      // Ridimensiona la tile su un quadrato 512x512 per una ripetizione fluida
+      const tileCanvas = document.createElement('canvas');
+      tileCanvas.width = 512;
+      tileCanvas.height = 512;
+      const tileCtx = tileCanvas.getContext('2d');
+      tileCtx.drawImage(waterTileImg, 0, 0, 512, 512);
+      assets.waterPattern = ctx.createPattern(tileCanvas, 'repeat');
+      console.log('✅ water_tile.png caricata con successo!');
+    };
+
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    document.getElementById('playBtn').addEventListener('click', () => {
+      const name = document.getElementById('playerName').value;
+      socket.emit('joinGame', name);
+      document.getElementById('overlay').style.display = 'none';
+      document.getElementById('hud').style.display = 'block';
+    });
+
+    const inputs = { up: false, down: false, left: false, right: false };
+    window.addEventListener('keydown', (e) => {
+      const k = e.key.toLowerCase();
+      if (k === 'w' || e.key === 'ArrowUp') inputs.up = true;
+      if (k === 's' || e.key === 'ArrowDown') inputs.down = true;
+      if (k === 'a' || e.key === 'ArrowLeft') inputs.left = true;
+      if (k === 'd' || e.key === 'ArrowRight') inputs.right = true;
+      if (e.code === 'Space') triggerShoot();
+      if (k === '1') upgrade('hull');
+      if (k === '2') upgrade('cannons');
+      if (k === '3') upgrade('sails');
+      if (k === '4') upgrade('reload');
+      socket.emit('inputs', inputs);
+    });
+
+    window.addEventListener('keyup', (e) => {
+      const k = e.key.toLowerCase();
+      if (k === 'w' || e.key === 'ArrowUp') inputs.up = false;
+      if (k === 's' || e.key === 'ArrowDown') inputs.down = false;
+      if (k === 'a' || e.key === 'ArrowLeft') inputs.left = false;
+      if (k === 'd' || e.key === 'ArrowRight') inputs.right = false;
+      socket.emit('inputs', inputs);
+    });
+
+    window.addEventListener('mousedown', () => {
+      if (document.getElementById('overlay').style.display === 'none') {
+        triggerShoot();
+      }
+    });
+
+    function triggerShoot() {
+      socket.emit('shoot');
+    }
+
+    function upgrade(stat) {
+      socket.emit('upgradeStat', stat);
+    }
+
+    socket.on('init', (data) => {
+      myId = data.id;
+      mapSize = data.mapSize;
+    });
+
+    socket.on('state', (state) => {
+      gameState = state;
+      updateHUD();
+    });
+
+    socket.on('cannonFired', ({ x, y, id }) => {
+      if (id === myId) {
+        camera.shake = 11;
+        myLastShotClient = Date.now();
+      }
+      if (shipVisuals[id]) {
+        shipVisuals[id].recoil = 1.0;
+      }
+
+      const shooter = gameState.players[id];
+      const baseAngle = shooter ? shooter.angle : 0;
+
+      [-Math.PI / 2, Math.PI / 2].forEach(side => {
+        const flashAngle = baseAngle + side;
+        for (let i = 0; i < 10; i++) {
+          const speed = Math.random() * 5 + 2;
+          particles.push({
+            x: x + Math.cos(flashAngle) * 20,
+            y: y + Math.sin(flashAngle) * 20,
+            vx: Math.cos(flashAngle + (Math.random() - 0.5) * 0.6) * speed,
+            vy: Math.sin(flashAngle + (Math.random() - 0.5) * 0.6) * speed,
+            size: Math.random() * 7 + 4,
+            alpha: 0.95,
+            decay: 0.03,
+            color: i < 4 ? '#5eead4' : '#334155'
+          });
+        }
+      });
+    });
+
+    socket.on('hitEffect', ({ x, y }) => {
+      for (let i = 0; i < 20; i++) {
+        particles.push({
+          x, y,
+          vx: (Math.random() - 0.5) * 10,
+          vy: (Math.random() - 0.5) * 10,
+          size: Math.random() * 5 + 2,
+          alpha: 1,
+          decay: 0.035,
+          color: Math.random() > 0.35 ? '#f97316' : '#7f1d1d'
+        });
+      }
+    });
+
+    socket.on('died', ({ level, kills }) => {
+      const statsEl = document.getElementById('death-stats');
+      statsEl.style.display = 'block';
+      statsEl.innerText = `Il tuo vascello è stato inghiottito dall'Abisso (Livello ${level} | Affondamenti: ${kills})`;
+      document.getElementById('overlay').style.display = 'flex';
+      document.getElementById('hud').style.display = 'none';
+    });
+
+    function updateHUD() {
+      const me = gameState.players[myId];
+      if (me) {
+        const pct = Math.min(100, (me.xp / me.maxXp) * 100);
+        document.getElementById('xp-fill').style.width = pct + '%';
+        document.getElementById('xp-text').innerText =
+          `Liv. ${me.level} | Anime: ${me.xp}/${me.maxXp}` +
+          (me.skillPoints > 0 ? ` (+${me.skillPoints} Punti Disponibili!)` : '');
+
+        document.querySelectorAll('.upg-btn').forEach(btn => {
+          btn.classList.toggle('available', me.skillPoints > 0);
+        });
+      }
+
+      const sorted = Object.values(gameState.players).sort((a, b) => b.level - a.level || b.kills - a.kills).slice(0, 6);
+      const lbHtml = sorted.map((p, idx) =>
+        `<div class="lb-row ${p.id === myId ? 'me' : ''}">
+          <span>${idx + 1}. ${p.name}</span>
+          <span>Lv.${p.level} (${p.kills}☠️)</span>
+        </div>`
+      ).join('');
+      document.getElementById('lb-list').innerHTML = lbHtml;
+    }
+
+    function drawBroadsideAim(p) {
+      const reloadProgress = Math.min(1, (Date.now() - myLastShotClient) / p.reloadTime);
+      const range = 280;
+      const spread = 0.24;
+
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.angle);
+
+      [-Math.PI / 2, Math.PI / 2].forEach(sideAngle => {
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.arc(0, 0, range, sideAngle - spread, sideAngle + spread);
+        ctx.closePath();
+
+        ctx.fillStyle = reloadProgress >= 1 ? 'rgba(45, 212, 191, 0.09)' : 'rgba(148, 163, 184, 0.04)';
+        ctx.fill();
+
+        if (reloadProgress < 1) {
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.arc(0, 0, range * reloadProgress, sideAngle - spread, sideAngle + spread);
+          ctx.closePath();
+          ctx.fillStyle = 'rgba(45, 212, 191, 0.06)';
+          ctx.fill();
+        }
+
+        ctx.strokeStyle = reloadProgress >= 1 ? 'rgba(45, 212, 191, 0.35)' : 'rgba(100, 116, 139, 0.18)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      });
+
+      ctx.restore();
+    }
+
+    function drawShip(p) {
+      if (!shipVisuals[p.id]) {
+        shipVisuals[p.id] = { sailBillow: 0, recoil: 0 };
+      }
+      const vis = shipVisuals[p.id];
+      const targetBillow = Math.min(1, Math.abs(p.speed) / p.maxSpeed);
+      vis.sailBillow += (targetBillow - vis.sailBillow) * 0.1;
+      vis.recoil *= 0.85;
+
+      if (Math.abs(p.speed) > 0.6 && Math.random() < 0.5) {
+        wakes.push({
+          x: p.x - Math.cos(p.angle) * 34,
+          y: p.y - Math.sin(p.angle) * 34,
+          radius: 6,
+          alpha: 0.4,
+          color: p.isBot ? '#7e22ce' : '#115e59'
+        });
+      }
+
+      const hpRatio = p.hp / p.maxHp;
+      if (hpRatio < 0.5 && Math.random() < 0.35) {
+        particles.push({
+          x: p.x + (Math.random() - 0.5) * 26,
+          y: p.y + (Math.random() - 0.5) * 26,
+          vx: (Math.random() - 0.5) * 0.8,
+          vy: (Math.random() - 0.5) * 0.8 - 0.5,
+          size: Math.random() * 5 + 3,
+          alpha: 0.75,
+          decay: 0.025,
+          color: hpRatio < 0.25 && Math.random() > 0.4 ? '#f97316' : '#1e293b'
+        });
+      }
+
+      if (p.id === myId) drawBroadsideAim(p);
+
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.angle);
+
+      const scaleRecoil = 1 - vis.recoil * 0.06;
+      ctx.scale(scaleRecoil, 1 + vis.recoil * 0.08);
+
+      const customCanvas = p.isBot ? assets.botHull : assets.playerHull;
+
+      if (customCanvas) {
+        // Disegna lo sprite AI scontornato automaticamente
+        ctx.save();
+        ctx.rotate(SPRITE_ANGLE_OFFSET);
+        ctx.drawImage(customCanvas, -52, -52, 104, 104);
+        ctx.restore();
+      } else {
+        // Fallback Vettoriale se il file PNG non è presente
+        ctx.fillStyle = '#475569';
+        ctx.beginPath();
+        ctx.moveTo(48, 0);
+        ctx.lineTo(32, -5);
+        ctx.lineTo(32, 5);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = p.isBot ? '#191326' : '#231710';
+        ctx.strokeStyle = p.isBot ? '#7e22ce' : '#5c3d28';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(38, 0);
+        ctx.quadraticCurveTo(12, 23, -34, 17);
+        ctx.lineTo(-39, 0);
+        ctx.lineTo(-34, -17);
+        ctx.quadraticCurveTo(12, -23, 38, 0);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        const cannonOffset = vis.recoil * 4;
+        ctx.fillStyle = '#090d16';
+        [-15, 0, 15].forEach(cx => {
+          ctx.fillRect(cx - 3, -22 + cannonOffset, 6, 7);
+          ctx.fillRect(cx - 3, 15 - cannonOffset, 6, 7);
+        });
+
+        const windWave = Math.sin(Date.now() * 0.008 + p.x * 0.01) * 2;
+        const sailCurve = 6 + vis.sailBillow * 14 + windWave;
+
+        [{ mastX: 12, width: 28 }, { mastX: -14, width: 22 }].forEach(mast => {
+          ctx.fillStyle = p.isBot ? 'rgba(107, 33, 168, 0.88)' : 'rgba(15, 23, 42, 0.92)';
+          ctx.strokeStyle = p.isBot ? '#a855f7' : '#334155';
+          ctx.lineWidth = 1.2;
+
+          ctx.beginPath();
+          ctx.moveTo(mast.mastX, -mast.width);
+          ctx.quadraticCurveTo(mast.mastX + sailCurve, 0, mast.mastX, mast.width);
+          ctx.lineTo(mast.mastX - 5, mast.width * 0.85);
+          ctx.quadraticCurveTo(mast.mastX + sailCurve * 0.4, 0, mast.mastX - 5, -mast.width * 0.85);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+        });
+      }
+
+      ctx.restore();
+
+      // Nome e Barra HP
+      ctx.save();
+      ctx.font = '600 12px Inter';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = p.id === myId ? '#5eead4' : (p.isBot ? '#c084fc' : '#e2d9c8');
+      ctx.fillText(`${p.name} [Lv.${p.level}]`, p.x, p.y - 52);
+
+      const barW = 56;
+      ctx.fillStyle = 'rgba(0,0,0,0.75)';
+      ctx.fillRect(p.x - barW / 2, p.y - 44, barW, 6);
+      ctx.fillStyle = hpRatio > 0.4 ? '#14b8a6' : (hpRatio > 0.2 ? '#f59e0b' : '#ef4444');
+      ctx.fillRect(p.x - barW / 2, p.y - 44, barW * Math.max(0, hpRatio), 6);
+      ctx.restore();
+    }
+
+    function render() {
+      requestAnimationFrame(render);
+
+      const me = gameState.players[myId];
+      if (me) {
+        camera.x += (me.x - camera.x) * 0.12;
+        camera.y += (me.y - camera.y) * 0.12;
+      }
+
+      if (camera.shake > 0) camera.shake *= 0.85;
+      const shakeX = (Math.random() - 0.5) * camera.shake;
+      const shakeY = (Math.random() - 0.5) * camera.shake;
+
+      ctx.fillStyle = '#04090e';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.save();
+      ctx.translate(canvas.width / 2 - camera.x + shakeX, canvas.height / 2 - camera.y + shakeY);
+
+      // 1. Disegna la tile water_tile.png ripetuta su tutta la mappa
+      if (assets.waterPattern) {
+        ctx.fillStyle = assets.waterPattern;
+        ctx.fillRect(-1000, -1000, mapSize + 2000, mapSize + 2000);
+      }
+
+      // Griglia leggera sopra l'acqua
+      ctx.strokeStyle = 'rgba(20, 45, 58, 0.2)';
+      ctx.lineWidth = 1;
+      for (let x = 0; x <= mapSize; x += 160) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, mapSize); ctx.stroke();
+      }
+      for (let y = 0; y <= mapSize; y += 160) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(mapSize, y); ctx.stroke();
+      }
+
+      // 2. Scie d'Acqua
+      for (let i = wakes.length - 1; i >= 0; i--) {
+        const w = wakes[i];
+        w.radius += 0.35;
+        w.alpha -= 0.008;
+        if (w.alpha <= 0) {
+          wakes.splice(i, 1);
+          continue;
+        }
+        ctx.strokeStyle = w.color;
+        ctx.globalAlpha = w.alpha;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(w.x, w.y, w.radius, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+
+      // 3. Anime Abissali
+      const pulse = Math.sin(Date.now() * 0.006) * 2.5;
+      gameState.souls.forEach(s => {
+        ctx.save();
+        ctx.shadowBlur = 16;
+        ctx.shadowColor = s.isBossDrop ? '#f59e0b' : '#2dd4bf';
+        ctx.fillStyle = s.isBossDrop ? '#fbbf24' : '#5eead4';
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, (s.isBossDrop ? 8.5 : 5.5) + pulse * 0.4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      });
+
+      // 4. Vascelli
+      Object.values(gameState.players).forEach(drawShip);
+
+      // 5. Palle di Cannone
+      ctx.fillStyle = '#ccfbf1';
+      ctx.shadowBlur = 12;
+      ctx.shadowColor = '#2dd4bf';
+      gameState.bullets.forEach(b => {
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, 4.5, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      ctx.shadowBlur = 0;
+
+      // 6. Particelle
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const pt = particles[i];
+        pt.x += pt.vx;
+        pt.y += pt.vy;
+        pt.alpha -= pt.decay || 0.025;
+        if (pt.alpha <= 0) {
+          particles.splice(i, 1);
+          continue;
+        }
+        ctx.fillStyle = pt.color;
+        ctx.globalAlpha = pt.alpha;
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, pt.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+
+      // 7. Cerchio Tempesta Battle Royale
+      const st = gameState.storm;
+      ctx.strokeStyle = 'rgba(220, 38, 38, 0.8)';
+      ctx.lineWidth = 8;
+      ctx.beginPath();
+      ctx.arc(st.x, st.y, st.radius, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.fillStyle = 'rgba(127, 29, 29, 0.26)';
+      ctx.beginPath();
+      ctx.rect(-2000, -2000, mapSize + 4000, mapSize + 4000);
+      ctx.arc(st.x, st.y, st.radius, 0, Math.PI * 2, true);
+      ctx.fill();
+
+      ctx.restore();
+
+      drawMinimap();
+    }
+
+    function drawMinimap() {
+      const size = 140;
+      const pad = 16;
+      ctx.save();
+      ctx.translate(pad, pad);
+
+      ctx.fillStyle = 'rgba(8, 13, 19, 0.88)';
+      ctx.strokeStyle = '#3b3026';
+      ctx.lineWidth = 1.5;
+      ctx.fillRect(0, 0, size, size);
+      ctx.strokeRect(0, 0, size, size);
+
+      const st = gameState.storm;
+      ctx.strokeStyle = '#ef4444';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc((st.x / mapSize) * size, (st.y / mapSize) * size, (st.radius / mapSize) * size, 0, Math.PI * 2);
+      ctx.stroke();
+
+      Object.values(gameState.players).forEach(p => {
+        ctx.fillStyle = p.id === myId ? '#2dd4bf' : (p.isBot ? '#a855f7' : '#f87171');
+        ctx.beginPath();
+        ctx.arc((p.x / mapSize) * size, (p.y / mapSize) * size, p.id === myId ? 3.5 : 2.2, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      ctx.restore();
+    }
+
+    render();
+  </script>
+</body>
+</html>
