@@ -6,7 +6,6 @@
   <title>Abyssal Sails .io - Dark Fantasy Pirate Royale v1.2</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Inter:wght@400;500;600;700&display=swap');
-
     * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
     body, html { width: 100%; height: 100%; overflow: hidden; background: #030609; font-family: 'Inter', sans-serif; color: #e2d9c8; }
     canvas { display: block; cursor: crosshair; }
@@ -14,7 +13,7 @@
     #vignette {
       position: fixed; inset: 0; pointer-events: none; z-index: 5;
       background: radial-gradient(circle at center, transparent 55%, rgba(0, 0, 0, 0.88) 100%);
-      transition: background 0.6s ease;
+      transition: background 0.5s ease;
     }
 
     #match-top-bar {
@@ -66,44 +65,28 @@
     #quest-toast h4 { font-family: 'Cinzel', serif; color: #fbbf24; font-size: 0.9rem; }
     #quest-toast p { font-size: 0.78rem; color: #e2e8f0; margin-top: 2px; }
 
+    /* DASHBOARD */
     #overlay {
       position: fixed; inset: 0;
       background: radial-gradient(circle at center, rgba(10, 20, 28, 0.84) 0%, rgba(3, 5, 8, 0.97) 100%);
       display: flex; flex-direction: column; align-items: center; justify-content: center;
       z-index: 20; backdrop-filter: blur(7px); padding: 18px; overflow-y: auto;
     }
-    .dashboard-wrap {
-      max-width: 1160px; width: 100%;
-      display: flex; flex-direction: column; gap: 14px;
-    }
+    .dashboard-wrap { max-width: 1160px; width: 100%; display: flex; flex-direction: column; gap: 14px; }
     .dash-header {
       display: flex; justify-content: space-between; align-items: center;
       background: rgba(12, 16, 22, 0.94); border: 1px solid #3d2f24;
-      padding: 12px 22px; border-radius: 8px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+      padding: 12px 22px; border-radius: 8px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
     }
-    .brand-title h1 {
-      font-family: 'Cinzel', serif; font-size: 1.8rem; color: #2dd4bf;
-      text-shadow: 0 0 16px rgba(45, 212, 191, 0.4); letter-spacing: 2px;
-    }
+    .brand-title h1 { font-family: 'Cinzel', serif; font-size: 1.8rem; color: #2dd4bf; text-shadow: 0 0 16px rgba(45, 212, 191, 0.4); letter-spacing: 2px; }
     .brand-title span { font-size: 0.78rem; color: #94a3b8; }
     .captain-badges { display: flex; gap: 12px; align-items: center; }
-    .badge-pill {
-      background: #090d13; border: 1px solid #47382b; padding: 8px 14px;
-      border-radius: 6px; font-size: 0.85rem; display: flex; align-items: center; gap: 8px;
-    }
+    .badge-pill { background: #090d13; border: 1px solid #47382b; padding: 8px 14px; border-radius: 6px; font-size: 0.85rem; display: flex; align-items: center; gap: 8px; }
     .badge-pill b { color: #fbbf24; font-size: 0.98rem; }
-    .sound-btn {
-      background: #0f172a; border: 1px solid #334155; color: #cbd5e1;
-      padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 0.82rem;
-    }
+    .sound-btn { background: #0f172a; border: 1px solid #334155; color: #cbd5e1; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 0.82rem; }
 
-    .dash-grid {
-      display: grid; grid-template-columns: 1fr 1.12fr 1fr; gap: 14px;
-    }
-    @media (max-width: 980px) {
-      .dash-grid { grid-template-columns: 1fr; }
-    }
+    .dash-grid { display: grid; grid-template-columns: 1fr 1.12fr 1fr; gap: 14px; }
+    @media (max-width: 980px) { .dash-grid { grid-template-columns: 1fr; } }
     .dash-card {
       background: rgba(13, 17, 24, 0.94); border: 1px solid #362b22;
       border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 12px;
@@ -115,10 +98,7 @@
       display: flex; justify-content: space-between; align-items: center;
     }
 
-    .quest-item {
-      background: #080c11; border: 1px solid #27221e; border-radius: 6px; padding: 9px 11px;
-      display: flex; flex-direction: column; gap: 5px;
-    }
+    .quest-item { background: #080c11; border: 1px solid #27221e; border-radius: 6px; padding: 9px 11px; display: flex; flex-direction: column; gap: 5px; }
     .quest-item.done { border-color: #eab308; background: rgba(234, 179, 8, 0.05); }
     .quest-top { display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: 600; }
     .quest-tier { font-size: 0.68rem; padding: 1px 6px; border-radius: 4px; background: #1e293b; color: #38bdf8; }
@@ -126,44 +106,22 @@
     .quest-bar-bg { width: 100%; height: 6px; background: #1e293b; border-radius: 4px; overflow: hidden; }
     .quest-bar-fill { height: 100%; background: linear-gradient(90deg, #0d9488, #2dd4bf); width: 0%; transition: 0.25s; }
 
-    .stats-grid {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: auto;
-    }
-    .stat-box {
-      background: #080c11; border: 1px solid #231f1c; padding: 7px 10px; border-radius: 5px;
-      font-size: 0.74rem; color: #94a3b8;
-    }
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: auto; }
+    .stat-box { background: #080c11; border: 1px solid #231f1c; padding: 7px 10px; border-radius: 5px; font-size: 0.74rem; color: #94a3b8; }
     .stat-box b { display: block; font-size: 0.95rem; color: #e2e8f0; margin-top: 2px; }
 
     .center-card { align-items: center; text-align: center; justify-content: space-between; }
-    #death-report {
-      width: 100%; background: rgba(127, 29, 29, 0.22); border: 1px solid #dc2626;
-      color: #fca5a5; padding: 9px; border-radius: 6px; font-size: 0.8rem; display: none;
-    }
-    input#playerName {
-      width: 100%; padding: 11px 16px; background: #080c11; border: 1px solid #47382b;
-      color: #f3ede2; font-size: 1rem; border-radius: 5px; outline: none; text-align: center;
-    }
+    #death-report { width: 100%; background: rgba(127, 29, 29, 0.22); border: 1px solid #dc2626; color: #fca5a5; padding: 9px; border-radius: 6px; font-size: 0.8rem; display: none; }
+    input#playerName { width: 100%; padding: 11px 16px; background: #080c11; border: 1px solid #47382b; color: #f3ede2; font-size: 1rem; border-radius: 5px; outline: none; text-align: center; }
     input#playerName:focus { border-color: #2dd4bf; box-shadow: 0 0 12px rgba(45, 212, 191, 0.25); }
 
     .skins-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; width: 100%; }
-    .skin-btn {
-      background: #080c11; border: 1px solid #2e2620; padding: 8px; border-radius: 6px;
-      cursor: pointer; font-size: 0.76rem; color: #cbd5e1; transition: 0.15s;
-      display: flex; flex-direction: column; align-items: center; gap: 4px;
-    }
+    .skin-btn { background: #080c11; border: 1px solid #2e2620; padding: 8px; border-radius: 6px; cursor: pointer; font-size: 0.76rem; color: #cbd5e1; transition: 0.15s; display: flex; flex-direction: column; align-items: center; gap: 4px; }
     .skin-btn.active { border-color: #2dd4bf; background: rgba(45, 212, 191, 0.1); color: #5eead4; }
     .skin-dot { width: 13px; height: 13px; border-radius: 50%; }
 
-    .tavern-box {
-      width: 100%; background: rgba(24, 16, 34, 0.85); border: 1px solid #6b21a8;
-      border-radius: 6px; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center;
-    }
-    .tavern-btn {
-      background: linear-gradient(180deg, #581c87, #3b0764); border: 1px solid #c084fc;
-      color: #f3e8ff; padding: 7px 12px; border-radius: 5px; font-family: 'Cinzel', serif;
-      font-size: 0.76rem; font-weight: 700; cursor: pointer;
-    }
+    .tavern-box { width: 100%; background: rgba(24, 16, 34, 0.85); border: 1px solid #6b21a8; border-radius: 6px; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; }
+    .tavern-btn { background: linear-gradient(180deg, #581c87, #3b0764); border: 1px solid #c084fc; color: #f3e8ff; padding: 7px 12px; border-radius: 5px; font-family: 'Cinzel', serif; font-size: 0.76rem; font-weight: 700; cursor: pointer; }
     .tavern-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
     #playBtn {
@@ -177,28 +135,18 @@
     .controls-mini { font-size: 0.73rem; color: #94a3b8; line-height: 1.5; }
     .controls-mini span { color: #5eead4; font-weight: 600; }
 
-    .armory-item {
-      background: #080c11; border: 1px solid #27221e; border-radius: 6px; padding: 10px 12px;
-      display: flex; justify-content: space-between; align-items: center;
-    }
+    .armory-item { background: #080c11; border: 1px solid #27221e; border-radius: 6px; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; }
     .armory-info h4 { font-size: 0.83rem; color: #e2d9c8; }
     .armory-info p { font-size: 0.72rem; color: #94a3b8; margin-top: 2px; }
-    .buy-upg-btn {
-      background: #132a2e; border: 1px solid #2dd4bf; color: #5eead4;
-      padding: 7px 11px; border-radius: 5px; font-size: 0.75rem; font-weight: 600; cursor: pointer;
-      min-width: 96px; text-align: center;
-    }
+    .buy-upg-btn { background: #132a2e; border: 1px solid #2dd4bf; color: #5eead4; padding: 7px 11px; border-radius: 5px; font-size: 0.75rem; font-weight: 600; cursor: pointer; min-width: 96px; text-align: center; }
     .buy-upg-btn:disabled { opacity: 0.38; border-color: #475569; color: #94a3b8; cursor: not-allowed; }
 
     /* HUD IN PARTITA */
     #hud { position: fixed; inset: 0; pointer-events: none; z-index: 10; display: none; }
     #minimapCanvas {
-      position: absolute; top: 16px; left: 16px;
-      width: 145px; height: 145px;
-      background: rgba(8, 13, 19, 0.92);
-      border: 1.5px solid #3b3026;
-      border-radius: 6px;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.85);
+      position: absolute; top: 16px; left: 16px; width: 145px; height: 145px;
+      background: rgba(8, 13, 19, 0.92); border: 1.5px solid #3b3026;
+      border-radius: 6px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.85);
     }
     #leaderboard {
       position: absolute; top: 16px; right: 16px; width: 245px;
@@ -208,19 +156,10 @@
     .lb-row { display: flex; justify-content: space-between; font-size: 0.81rem; margin: 4px 0; color: #94a3b8; }
     .lb-row.me { color: #2dd4bf; font-weight: 600; }
 
-    #killfeed {
-      position: absolute; top: 185px; right: 16px; width: 245px;
-      display: flex; flex-direction: column; gap: 5px; align-items: flex-end;
-    }
-    .kf-item {
-      background: rgba(10, 14, 20, 0.85); border-right: 3px solid #f43f5e;
-      padding: 5px 10px; border-radius: 4px; font-size: 0.74rem; color: #e2e8f0;
-    }
+    #killfeed { position: absolute; top: 185px; right: 16px; width: 245px; display: flex; flex-direction: column; gap: 5px; align-items: flex-end; }
+    .kf-item { background: rgba(10, 14, 20, 0.85); border-right: 3px solid #f43f5e; padding: 5px 10px; border-radius: 4px; font-size: 0.74rem; color: #e2e8f0; }
 
-    #relics-panel {
-      position: absolute; top: 175px; left: 16px;
-      display: flex; flex-direction: column; gap: 6px; pointer-events: auto;
-    }
+    #relics-panel { position: absolute; top: 175px; left: 16px; display: flex; flex-direction: column; gap: 6px; pointer-events: auto; }
     .relic-slot {
       background: rgba(10, 15, 22, 0.9); border: 1px solid #3b3026;
       border-radius: 6px; padding: 7px 11px; font-size: 0.78rem; color: #94a3b8;
@@ -230,10 +169,7 @@
     .relic-stars { color: #facc15; font-size: 0.75rem; letter-spacing: 1px; }
 
     #synergy-list { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
-    .synergy-badge {
-      background: rgba(234, 179, 8, 0.14); border: 1px solid #ca8a04;
-      color: #fde047; font-size: 0.72rem; padding: 4px 8px; border-radius: 4px; font-weight: 600;
-    }
+    .synergy-badge { background: rgba(234, 179, 8, 0.14); border: 1px solid #ca8a04; color: #fde047; font-size: 0.72rem; padding: 4px 8px; border-radius: 4px; font-weight: 600; }
 
     #pending-relic-modal {
       display: none; align-items: center; gap: 10px;
@@ -241,55 +177,35 @@
       box-shadow: 0 0 25px rgba(250, 204, 21, 0.35);
       padding: 8px 16px; border-radius: 8px; font-size: 0.8rem; color: #fef08a;
     }
-    .swap-key-btn {
-      background: #422006; border: 1px solid #facc15; color: #fef08a;
-      padding: 4px 8px; border-radius: 4px; cursor: pointer; font-weight: 700; font-size: 0.74rem;
-    }
+    .swap-key-btn { background: #422006; border: 1px solid #facc15; color: #fef08a; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-weight: 700; font-size: 0.74rem; }
 
     #class-modal {
       position: absolute; top: 16%; left: 50%; transform: translateX(-50%);
       display: none; flex-direction: column; align-items: center; gap: 12px;
       background: rgba(11, 15, 22, 0.96); border: 1px solid #2dd4bf;
-      box-shadow: 0 0 35px rgba(45, 212, 191, 0.3); padding: 18px 24px; border-radius: 8px;
-      pointer-events: auto;
+      box-shadow: 0 0 35px rgba(45, 212, 191, 0.3); padding: 18px 24px; border-radius: 8px; pointer-events: auto;
     }
     #class-modal h2 { font-family: 'Cinzel', serif; font-size: 1.15rem; color: #5eead4; letter-spacing: 1px; }
     .class-cards { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
-    .class-card {
-      width: 175px; background: #090d14; border: 1px solid #3b3026; border-radius: 6px;
-      padding: 12px; cursor: pointer; transition: 0.2s; text-align: center;
-    }
+    .class-card { width: 175px; background: #090d14; border: 1px solid #3b3026; border-radius: 6px; padding: 12px; cursor: pointer; transition: 0.2s; text-align: center; }
     .class-card:hover { border-color: #2dd4bf; transform: translateY(-4px); background: #111c24; }
     .class-card h4 { font-family: 'Cinzel', serif; color: #f3ede2; font-size: 0.92rem; margin-bottom: 6px; }
     .class-card p { font-size: 0.73rem; color: #94a3b8; line-height: 1.4; }
 
-    #rpg-bar {
-      position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%);
-      display: flex; flex-direction: column; align-items: center; gap: 9px; pointer-events: auto;
-    }
+    #rpg-bar { position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 9px; pointer-events: auto; }
     #action-pills { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: center; }
-    .pill-box {
-      display: flex; align-items: center; gap: 6px; cursor: pointer;
-      background: rgba(15, 23, 42, 0.92); border: 1px solid #475569;
-      padding: 6px 13px; border-radius: 20px; font-size: 0.78rem; color: #e2e8f0;
-    }
+    .pill-box { display: flex; align-items: center; gap: 6px; cursor: pointer; background: rgba(15, 23, 42, 0.92); border: 1px solid #475569; padding: 6px 13px; border-radius: 20px; font-size: 0.78rem; color: #e2e8f0; }
     #lantern-box { border-color: #fde047; color: #fef08a; }
     #harpoon-box { border-color: #38bdf8; color: #bae6fd; }
     #consumable-box { border-color: #f97316; color: #fed7aa; box-shadow: 0 0 12px rgba(249, 115, 22, 0.2); }
     #ability-box { display: none; border-color: #a855f7; color: #e9d5ff; box-shadow: 0 0 15px rgba(168, 85, 247, 0.3); }
     #repair-box { border-color: #22c55e; color: #bbf7d0; box-shadow: 0 0 12px rgba(34, 197, 94, 0.2); }
     #upgrades { display: flex; gap: 10px; }
-    .upg-btn {
-      background: rgba(14, 20, 27, 0.92); border: 1px solid #3b3026; color: #d6cbb9;
-      padding: 8px 14px; border-radius: 5px; font-size: 0.8rem; cursor: pointer; transition: 0.15s;
-    }
+    .upg-btn { background: rgba(14, 20, 27, 0.92); border: 1px solid #3b3026; color: #d6cbb9; padding: 8px 14px; border-radius: 5px; font-size: 0.8rem; cursor: pointer; transition: 0.15s; }
     .upg-btn.available { border-color: #2dd4bf; color: #5eead4; box-shadow: 0 0 12px rgba(45, 212, 191, 0.25); }
     .upg-btn.maxed { opacity: 0.55; border-color: #eab308; color: #fef08a; cursor: default; }
     .upg-btn:hover.available { transform: translateY(-2px); background: #132a2e; }
-    #xp-container {
-      width: 460px; height: 22px; background: #090d12; border: 1px solid #3d3126;
-      border-radius: 12px; overflow: hidden; position: relative;
-    }
+    #xp-container { width: 460px; height: 22px; background: #090d12; border: 1px solid #3d3126; border-radius: 12px; overflow: hidden; position: relative; }
     #xp-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #0d9488, #2dd4bf); transition: width 0.2s; }
     #xp-text { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 600; text-shadow: 0 1px 3px #000; }
   </style>
@@ -500,7 +416,6 @@
     const MAX_WAKES = 85;
     const STEALTH_MAX_DURATION_MS = 8000;
 
-    // Coordinate Puntatore Mouse per Mira a 360° del Rampino
     let mouseScreenX = window.innerWidth / 2;
     let mouseScreenY = window.innerHeight / 2;
 
@@ -631,22 +546,10 @@
 
     function createDefaultQuests() {
       return [
-        {
-          id: 'q_souls', title: 'Raccogli Anime Abissali', type: 'soul',
-          tier: 0, progress: 0, targets: [50, 150, 400], rewards: [120, 280, 600]
-        },
-        {
-          id: 'q_kills', title: 'Affonda Vascelli Nemici', type: 'kill',
-          tier: 0, progress: 0, targets: [8, 25, 60], rewards: [160, 350, 800]
-        },
-        {
-          id: 'q_relics', title: 'Raccogli o Fondi Reliquie', type: 'relic',
-          tier: 0, progress: 0, targets: [5, 15, 35], rewards: [140, 300, 650]
-        },
-        {
-          id: 'q_boss', title: 'Leviatano, Isole o Galeoni d\'Oro', type: 'boss_or_island',
-          tier: 0, progress: 0, targets: [2, 6, 15], rewards: [220, 500, 1100]
-        }
+        { id: 'q_souls', title: 'Raccogli Anime Abissali', type: 'soul', tier: 0, progress: 0, targets: [50, 150, 400], rewards: [120, 280, 600] },
+        { id: 'q_kills', title: 'Affonda Vascelli Nemici', type: 'kill', tier: 0, progress: 0, targets: [8, 25, 60], rewards: [160, 350, 800] },
+        { id: 'q_relics', title: 'Raccogli o Fondi Reliquie', type: 'relic', tier: 0, progress: 0, targets: [5, 15, 35], rewards: [140, 300, 650] },
+        { id: 'q_boss', title: 'Leviatano, Isole o Galeoni d\'Oro', type: 'boss_or_island', tier: 0, progress: 0, targets: [2, 6, 15], rewards: [220, 500, 1100] }
       ];
     }
 
@@ -704,9 +607,7 @@
           <div class="quest-item ${isAllDone ? 'done' : ''}">
             <div class="quest-top">
               <span>${q.title} (${Math.min(q.progress, curTarget)}/${curTarget})</span>
-              ${isAllDone
-                ? `<span style="color:#eab308">COMPLETATA ✔</span>`
-                : `<span class="quest-reward">+${curReward} 🪙</span>`}
+              ${isAllDone ? `<span style="color:#eab308">COMPLETATA ✔</span>` : `<span class="quest-reward">+${curReward} 🪙</span>`}
             </div>
             <div style="display:flex; justify-content:space-between; align-items:center;">
               <span class="quest-tier">${isAllDone ? 'GRADO MAX' : tierNames[q.tier]}</span>
@@ -1120,10 +1021,7 @@
             const reward = q.rewards[q.tier];
             profile.doubloons += reward;
             q.tier++;
-            showQuestToast(
-              `📜 CONTRATTO GRADO ${q.tier} COMPLETATO!`,
-              `${q.title}: +${reward} Dobloni Abissali 🪙`
-            );
+            showQuestToast(`📜 CONTRATTO GRADO ${q.tier} COMPLETATO!`, `${q.title}: +${reward} Dobloni Abissali 🪙`);
           }
         }
       });
@@ -1149,14 +1047,7 @@
 
     socket.on('dmgNum', ({ x, y, text, color }) => {
       if (!isInView(x, y, 200)) return;
-      dmgNumbers.push({
-        x: x + (Math.random() - 0.5) * 20,
-        y,
-        text,
-        color,
-        alpha: 1,
-        vy: -1.5
-      });
+      dmgNumbers.push({ x: x + (Math.random() - 0.5) * 20, y, text, color, alpha: 1, vy: -1.5 });
     });
 
     socket.on('lightningFx', ({ fromX, fromY, targets }) => {
@@ -1165,13 +1056,7 @@
         camera.shake = Math.max(camera.shake, 9);
       }
       (targets || []).forEach(t => {
-        lightningBolts.push({
-          x1: fromX,
-          y1: fromY,
-          x2: t.x,
-          y2: t.y,
-          alpha: 1.0
-        });
+        lightningBolts.push({ x1: fromX, y1: fromY, x2: t.x, y2: t.y, alpha: 1.0 });
       });
     });
 
@@ -1379,9 +1264,7 @@
         }
 
         const synEl = document.getElementById('synergy-list');
-        synEl.innerHTML = (me.activeSynergies || [])
-          .map(s => `<div class="synergy-badge">${s}</div>`)
-          .join('');
+        synEl.innerHTML = (me.activeSynergies || []).map(s => `<div class="synergy-badge">${s}</div>`).join('');
 
         const pendModal = document.getElementById('pending-relic-modal');
         if (me.pendingRelic && gameState.serverTime < me.pendingRelicUntil) {
@@ -1470,7 +1353,7 @@
 
       ctx.restore();
 
-      // Linea di Mira del Rampino verso il puntatore del Mouse (se pronto)
+      // Linea di Mira del Rampino verso il puntatore del Mouse (520px max)
       const harpReady = (gameState.serverTime - (p.lastHarpoon || 0)) >= (p.harpoonCd || 9500);
       if (harpReady && !p.tether) {
         const worldMouseX = mouseScreenX - canvas.width / 2 + camera.x;
@@ -1892,13 +1775,7 @@
       for (let id in gameState.players) {
         const srv = gameState.players[id];
         if (!renderPlayers[id]) {
-          renderPlayers[id] = {
-            x: srv.x,
-            y: srv.y,
-            angle: srv.angle,
-            sailBillow: 0,
-            recoil: 0
-          };
+          renderPlayers[id] = { x: srv.x, y: srv.y, angle: srv.angle, sailBillow: 0, recoil: 0 };
         } else {
           const rp = renderPlayers[id];
           if (Math.hypot(srv.x - rp.x, srv.y - rp.y) > 400) {
@@ -1922,7 +1799,7 @@
       const distToMe = Math.hypot(rp.x - meRender.x, rp.y - meRender.y);
       const isStealthedEnemy = p.id !== myId && !p.lanternOn && distToMe > 200;
 
-      // Disegna il Cavo in Tensione del Rampino (Tether) se agganciato!
+      // Disegna il Cavo in Tensione del Rampino (Tether)
       if (p.tether) {
         ctx.save();
         ctx.strokeStyle = '#facc15';
@@ -1965,12 +1842,7 @@
         addParticle({
           x: rp.x + (Math.random() - 0.5) * 40,
           y: rp.y + (Math.random() - 0.5) * 40,
-          vx: 0,
-          vy: -1.2,
-          size: 4,
-          alpha: 0.9,
-          decay: 0.035,
-          color: '#4ade80'
+          vx: 0, vy: -1.2, size: 4, alpha: 0.9, decay: 0.035, color: '#4ade80'
         });
       }
 
@@ -1978,9 +1850,7 @@
         addWake({
           x: rp.x - Math.cos(rp.angle) * 34,
           y: rp.y - Math.sin(rp.angle) * 34,
-          radius: 6,
-          alpha: 0.38,
-          color: skinColor
+          radius: 6, alpha: 0.38, color: skinColor
         });
       }
 
@@ -1992,8 +1862,7 @@
           vx: (Math.random() - 0.5) * 0.8,
           vy: (Math.random() - 0.5) * 0.8 - 0.5,
           size: Math.random() * 5 + 3,
-          alpha: 0.75,
-          decay: 0.03,
+          alpha: 0.75, decay: 0.03,
           color: hpRatio < 0.25 && Math.random() > 0.4 ? '#f97316' : '#1e293b'
         });
       }
@@ -2326,7 +2195,8 @@
 
       Object.values(gameState.players).forEach(p => {
         if (p.id !== myId && !p.lanternOn) return;
-        mmCtx.fillStyle = p.isMostWanted ? '#facc15' : (p.isElite ? '#fb7185' : (p.id === myId ? skinColor : (p.isBot ? '#a855f7' : '#f87171')));
+        const pSkinCol = getSkinAuraColor(p.skin);
+        mmCtx.fillStyle = p.isMostWanted ? '#facc15' : (p.isElite ? '#fb7185' : (p.id === myId ? pSkinCol : (p.isBot ? '#a855f7' : '#f87171')));
         mmCtx.beginPath();
         mmCtx.arc((p.x / mapSize) * size, (p.y / mapSize) * size, p.id === myId || p.isMostWanted || p.isElite ? 3.8 : 2.2, 0, Math.PI * 2);
         mmCtx.fill();

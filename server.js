@@ -11,7 +11,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 const MAP_SIZE = 4000;
 const TICK_RATE = 30;
-const MAX_SOULS = 110;
+const MAX_SOULS = 115;
 const ROCK_COUNT = 18;
 const MAX_CONSUMABLES = 10;
 const MAX_BARRELS = 12;
@@ -56,6 +56,74 @@ let blackMerchant = {
   radius: 130,
   angle: 0
 };
+
+// =========================================================
+// POOL GACHA ROGUELIKE (25 CARTE + 5 RARITÀ + 5 CATEGORIE)
+// =========================================================
+const POWERUP_POOL = [
+  // --- CATEGORIA 1: 🔥 ARTIGLIERIA INFERNALE (artillery) ---
+  { id: 'art_1', name: 'Polvere Nera Pressata', cat: 'artillery', catName: '🔥 Artiglieria', rarity: 'common', icon: '💣', desc: '+4 Danno alle Bordate', stats: { dmg: 4 } },
+  { id: 'art_2', name: 'Palle Incandescenti', cat: 'artillery', catName: '🔥 Artiglieria', rarity: 'rare', icon: '☄️', desc: '+7 Danno e +15% Dimensione Proiettili', stats: { dmg: 7, bulletSize: 0.15 } },
+  { id: 'art_3', name: 'Culatte Rinforzate', cat: 'artillery', catName: '🔥 Artiglieria', rarity: 'epic', icon: '🔥', desc: '+11 Danno e +15% Velocità Proiettili', stats: { dmg: 11, bulletSpeed: 2.0 } },
+  { id: 'art_4', name: 'Batteria del Demone', cat: 'artillery', catName: '🔥 Artiglieria', rarity: 'legendary', icon: '🌋', desc: '+1 Cannone Extra per lato e +8 Danno!', stats: { extraCannons: 1, dmg: 8 } },
+  { id: 'art_5', name: 'APOCALISSE DI FUOCO', cat: 'artillery', catName: '🔥 Artiglieria', rarity: 'mythic', icon: '👹', desc: 'MITICA: +2 Cannoni per lato, +14 Danno e Palle Giganti!', stats: { extraCannons: 2, dmg: 14, bulletSize: 0.35 } },
+
+  // --- CATEGORIA 2: 🛡️ COLOSSO ABISSALE (colossus) ---
+  { id: 'col_1', name: 'Assi di Quercia Nera', cat: 'colossus', catName: '🛡️ Colosso', rarity: 'common', icon: '🪵', desc: '+35 HP Massimi', stats: { hp: 35 } },
+  { id: 'col_2', name: 'Piastre di Ferro Maledetto', cat: 'colossus', catName: '🛡️ Colosso', rarity: 'rare', icon: '🛡️', desc: '+50 HP Massimi e +7% Corazza', stats: { hp: 50, armor: 0.07 } },
+  { id: 'col_3', name: 'Sperone Frantuma-Ossa', cat: 'colossus', catName: '🛡️ Colosso', rarity: 'epic', icon: '🦏', desc: '+75 HP Massimi e +45% Danno Speronamento', stats: { hp: 75, ramMult: 0.45 } },
+  { id: 'col_4', name: 'Scudo del Behemoth', cat: 'colossus', catName: '🛡️ Colosso', rarity: 'legendary', icon: '🏰', desc: '+120 HP Massimi, +12% Corazza e +15% Riflessione Spine', stats: { hp: 120, armor: 0.12, thorns: 0.15 } },
+  { id: 'col_5', name: 'CUORE DELL\'IMMORTALE', cat: 'colossus', catName: '🛡️ Colosso', rarity: 'mythic', icon: '💎', desc: 'MITICA: +190 HP Massimi, +18% Corazza e Rigenerazione Continua!', stats: { hp: 190, armor: 0.18, regen: 0.22 } },
+
+  // --- CATEGORIA 3: ⚡ ARALDO DELLA TEMPESTA (tempest) ---
+  { id: 'tmp_1', name: 'Vele Tagliavento', cat: 'tempest', catName: '⚡ Tempesta', rarity: 'common', icon: '⛵', desc: '+0.45 Velocità e Timone più rapido', stats: { speed: 0.45, turn: 0.003 } },
+  { id: 'tmp_2', name: 'oleatura degli Argani', cat: 'tempest', catName: '⚡ Tempesta', rarity: 'rare', icon: '⚙️', desc: '-12% Tempo di Ricarica Cannoni', stats: { reloadMult: 0.88 } },
+  { id: 'tmp_3', name: 'Verricello Elettrico', cat: 'tempest', catName: '⚡ Tempesta', rarity: 'epic', icon: '🪝', desc: '-35% Ricarica Rampino [V] e +0.65 Velocità', stats: { harpoonCdMult: 0.65, speed: 0.65 } },
+  { id: 'tmp_4', name: 'Sovraccarico del Tuono', cat: 'tempest', catName: '⚡ Tempesta', rarity: 'legendary', icon: '⚡', desc: '-22% Ricarica Cannoni e -25% Cooldown Abilità [E]', stats: { reloadMult: 0.78, abilityCdMult: 0.75 } },
+  { id: 'tmp_5', name: 'SIGNORE DEL FULMINE', cat: 'tempest', catName: '⚡ Tempesta', rarity: 'mythic', icon: '🌪️', desc: 'MITICA: +1.2 Velocità, -28% Ricarica e Scossa su ogni colpo!', stats: { speed: 1.2, reloadMult: 0.72, forceShock: true } },
+
+  // --- CATEGORIA 4: 💀 CULTO DEI DANNATI (cursed) ---
+  { id: 'cur_1', name: ' Sussurro delle Anime', cat: 'cursed', catName: '💀 Dannati', rarity: 'common', icon: '🕯️', desc: '+9% Rubavita sui colpi di cannone', stats: { lifesteal: 0.09 } },
+  { id: 'cur_2', name: 'Bussola dell\'Ossario', cat: 'cursed', catName: '💀 Dannati', rarity: 'rare', icon: '💀', desc: '+14% Rubavita e +80px Magnete Anime', stats: { lifesteal: 0.14, magnet: 80 } },
+  { id: 'cur_3', name: 'Maledizione Vampirica', cat: 'cursed', catName: '💀 Dannati', rarity: 'epic', icon: '🦇', desc: '+20% Rubavita e +6 Danno Cannoni', stats: { lifesteal: 0.20, dmg: 6 } },
+  { id: 'cur_4', name: 'Grimorio del Negromante', cat: 'cursed', catName: '💀 Dannati', rarity: 'legendary', icon: '📖', desc: '+25% Rubavita e +25% XP da ogni Anima raccolta!', stats: { lifesteal: 0.25, xpMult: 0.25 } },
+  { id: 'cur_5', name: 'TRONO DI CARONTE', cat: 'cursed', catName: '💀 Dannati', rarity: 'mythic', icon: '👑', desc: 'MITICA: +32% Rubavita, +90 HP e Spara 1 Teschio Homing a ogni salva!', stats: { lifesteal: 0.32, hp: 90, bonusHomingSkull: 1 } },
+
+  // --- CATEGORIA 5: 🪙 FORTUNA DEL CONTRABBANDIERE (fortune) ---
+  { id: 'for_1', name: 'Moneta Bucata', cat: 'fortune', catName: '🪙 Fortuna', rarity: 'common', icon: '🪙', desc: '+10% Probabilità di Colpo Critico (Danno 2x)', stats: { crit: 0.10 } },
+  { id: 'for_2', name: 'Velo dell\'Illusione', cat: 'fortune', catName: '🪙 Fortuna', rarity: 'rare', icon: '💨', desc: '+10% Schivata Colpi e +8% Critico', stats: { dodge: 0.10, crit: 0.08 } },
+  { id: 'for_3', name: 'Dadi Truccati del Pirata', cat: 'fortune', catName: '🪙 Fortuna', rarity: 'epic', icon: '🎲', desc: '+18% Probabilità Critico e +25 Dobloni Immediati!', stats: { crit: 0.18, instantDoubloons: 25 } },
+  { id: 'for_4', name: 'Bussola dell\'Oro Maledetto', cat: 'fortune', catName: '🪙 Fortuna', rarity: 'legendary', icon: '🧭', desc: '+24% Critico, +14% Schivata e +50 Dobloni Immediati!', stats: { crit: 0.24, dodge: 0.14, instantDoubloons: 50 } },
+  { id: 'for_5', name: 'MANO DEL RE PIRATA', cat: 'fortune', catName: '🪙 Fortuna', rarity: 'mythic', icon: '🎰', desc: 'MITICA: +35% Critico (2x), +18% Schivata e +100 Dobloni Immediati!', stats: { crit: 0.35, dodge: 0.18, instantDoubloons: 100 } }
+];
+
+function rollRarity(shipLevel, fortuneCount) {
+  const luckBonus = Math.min(0.15, (shipLevel - 1) * 0.012 + fortuneCount * 0.03);
+  const r = Math.random();
+  if (r < 0.02 + luckBonus * 0.35) return 'mythic';
+  if (r < 0.08 + luckBonus * 0.8) return 'legendary';
+  if (r < 0.24 + luckBonus * 1.2) return 'epic';
+  if (r < 0.54 + luckBonus) return 'rare';
+  return 'common';
+}
+
+function generateDraftOptions(ship) {
+  const fortuneCount = (ship.traits && ship.traits.fortune) || 0;
+  const chosenIds = new Set();
+  const options = [];
+
+  for (let i = 0; i < 3; i++) {
+    const targetRarity = rollRarity(ship.level, fortuneCount);
+    let candidates = POWERUP_POOL.filter(c => c.rarity === targetRarity && !chosenIds.has(c.id));
+    if (candidates.length === 0) {
+      candidates = POWERUP_POOL.filter(c => !chosenIds.has(c.id));
+    }
+    const picked = candidates[Math.floor(Math.random() * candidates.length)];
+    chosenIds.add(picked.id);
+    options.push(picked);
+  }
+  return options;
+}
 
 const RELIC_TYPES = [
   { id: 'chalice', name: 'Calice di Sangue', icon: '🩸', color: '#f43f5e', baseDesc: 'Rubavita' },
@@ -206,7 +274,6 @@ function triggerBarrelExplosion(barrel, attackerId) {
       if (t.isRepairing) interruptRepair(t, 'Esplosione Barile!');
       emitDamageNumber(t.x, t.y - 20, blastDmg, '#f97316', '🧨 ');
 
-      // Impulso fisico d'onda d'urto sul vettore d'inerzia!
       if (d > 1) {
         const force = (1 - d / blastRadius) * 14 + 5;
         t.momX += ((t.x - bx) / d) * force;
@@ -306,11 +373,10 @@ function createShip(id, name, isBot = false, meta = {}, isElite = false) {
     y: spawnPos.y,
     angle: Number((Math.random() * Math.PI * 2).toFixed(3)),
     speed: 0,
-    // Vettori di Momento & Inerzia (per derapate, pendolo rampino e spinte)
     momX: 0,
     momY: 0,
     mass: isElite ? 1.35 : 1.0,
-    tether: null, // { type: 'rock'|'ship'|'boss', x, y, targetId, rockId, until, minReleaseDist }
+    tether: null,
     baseMaxSpeed: baseSpeed,
     maxSpeed: baseSpeed,
     baseTurnSpeed: 0.044 + sailLv * 0.0008,
@@ -323,11 +389,40 @@ function createShip(id, name, isBot = false, meta = {}, isElite = false) {
     baseReloadTime: 1350,
     reloadTime: 1350,
     lastShot: 0,
+    shotsFiredCount: 0,
     level: isElite ? 3 : 1,
     xp: soulLv * 10,
-    maxXp: isElite ? 78 : 45,
-    skillPoints: 0,
-    statUpgrades: { hull: 0, cannons: 0, sails: 0, reload: 0 },
+    maxXp: isElite ? 78 : 42,
+    // SISTEMA ROGUELIKE GACHA (Sostituisce i vecchi skillPoints manuali)
+    draftQueue: 0,
+    currentDraft: null, // Array di 3 carte Gacha da scegliere
+    rerollsLeft: 2,
+    collectedCards: [],
+    traits: { artillery: 0, colossus: 0, tempest: 0, cursed: 0, fortune: 0 },
+    gachaBonuses: {
+      hp: 0,
+      dmg: 0,
+      speed: 0,
+      turn: 0,
+      reloadMult: 1.0,
+      harpoonCdMult: 1.0,
+      abilityCdMult: 1.0,
+      armor: 0,
+      lifesteal: 0,
+      crit: 0,
+      dodge: 0,
+      thorns: 0,
+      regen: 0,
+      ramMult: 0,
+      magnet: 0,
+      xpMult: 0,
+      extraCannons: 0,
+      bulletSize: 0,
+      bulletSpeed: 0,
+      bonusHomingSkull: 0,
+      forceShock: false
+    },
+    levelUpShieldUntil: 0,
     kills: 0,
     soulsCollected: 0,
     isMostWanted: false,
@@ -335,6 +430,7 @@ function createShip(id, name, isBot = false, meta = {}, isElite = false) {
     stealthSince: 0,
     lanternLockUntil: 0,
     lastHarpoon: 0,
+    baseHarpoonCd: 9500,
     harpoonCd: 9500,
     shockedUntil: 0,
     miniShockUntil: 0,
@@ -342,6 +438,7 @@ function createShip(id, name, isBot = false, meta = {}, isElite = false) {
     emote: null,
     emoteUntil: 0,
     lastMerchantUse: 0,
+    baseAbilityCd: 10000,
     abilityCd: 10000,
     lastAbility: 0,
     activeBuffUntil: 0,
@@ -375,6 +472,72 @@ function createShip(id, name, isBot = false, meta = {}, isElite = false) {
   }
 
   return ship;
+}
+
+function applyGachaCardToShip(p, card) {
+  p.collectedCards.push({ id: card.id, name: card.name, rarity: card.rarity, icon: card.icon, cat: card.cat });
+  p.traits[card.cat] = (p.traits[card.cat] || 0) + 1;
+
+  const st = card.stats || {};
+  const gb = p.gachaBonuses;
+  if (st.hp) gb.hp += st.hp;
+  if (st.dmg) gb.dmg += st.dmg;
+  if (st.speed) gb.speed += st.speed;
+  if (st.turn) gb.turn += st.turn;
+  if (st.reloadMult) gb.reloadMult *= st.reloadMult;
+  if (st.harpoonCdMult) gb.harpoonCdMult *= st.harpoonCdMult;
+  if (st.abilityCdMult) gb.abilityCdMult *= st.abilityCdMult;
+  if (st.armor) gb.armor += st.armor;
+  if (st.lifesteal) gb.lifesteal += st.lifesteal;
+  if (st.crit) gb.crit += st.crit;
+  if (st.dodge) gb.dodge += st.dodge;
+  if (st.thorns) gb.thorns += st.thorns;
+  if (st.regen) gb.regen += st.regen;
+  if (st.ramMult) gb.ramMult += st.ramMult;
+  if (st.magnet) gb.magnet += st.magnet;
+  if (st.xpMult) gb.xpMult += st.xpMult;
+  if (st.extraCannons) gb.extraCannons += st.extraCannons;
+  if (st.bulletSize) gb.bulletSize += st.bulletSize;
+  if (st.bulletSpeed) gb.bulletSpeed += st.bulletSpeed;
+  if (st.bonusHomingSkull) gb.bonusHomingSkull += st.bonusHomingSkull;
+  if (st.forceShock) gb.forceShock = true;
+
+  if (st.instantDoubloons && !p.isBot) {
+    io.to(p.id).emit('questEvent', { type: 'gacha', amount: 1, doubloons: st.instantDoubloons });
+  }
+
+  recalculateShipStats(p);
+
+  const rarityColors = {
+    common: '#94a3b8',
+    rare: '#38bdf8',
+    epic: '#c084fc',
+    legendary: '#facc15',
+    mythic: '#f43f5e'
+  };
+  io.emit('dmgNum', {
+    x: Math.round(p.x),
+    y: Math.round(p.y - 42),
+    text: `${card.icon} ${card.name}!`,
+    color: rarityColors[card.rarity] || '#5eead4'
+  });
+}
+
+function triggerNextDraftIfAvailable(p) {
+  if (p.isBot) {
+    while (p.draftQueue > 0) {
+      p.draftQueue--;
+      const opts = generateDraftOptions(p);
+      applyGachaCardToShip(p, opts[Math.floor(Math.random() * opts.length)]);
+    }
+    return;
+  }
+
+  if (!p.currentDraft && p.draftQueue > 0) {
+    p.draftQueue--;
+    p.currentDraft = generateDraftOptions(p);
+    io.to(p.id).emit('draftRolled', { options: p.currentDraft, rerollsLeft: p.rerollsLeft });
+  }
 }
 
 function revealShipLantern(ship, now) {
@@ -520,21 +683,64 @@ for (let i = 0; i < MAX_SOULS; i++) spawnSoul();
 for (let i = 0; i < MAX_CONSUMABLES; i++) spawnConsumable();
 for (let i = 0; i < MAX_BARRELS; i++) spawnBarrel();
 
+// =========================================================
+// RICALCOLO STATISTICHE + SINERGIE DI CATEGORIA GACHA (2 & 4 PEZZI)
+// =========================================================
 function recalculateShipStats(p) {
-  let maxHp = p.baseMaxHp + (p.level - 1) * 12 + p.statUpgrades.hull * 28;
-  let dmg = p.baseDamage + p.statUpgrades.cannons * 4.5;
-  let maxSpd = p.baseMaxSpeed + p.statUpgrades.sails * 0.45;
-  let turnSpd = p.baseTurnSpeed + p.statUpgrades.sails * 0.0035;
-  let reload = Math.max(420, p.baseReloadTime - p.statUpgrades.reload * 130);
-  let lifesteal = 0;
-  let armor = 0;
+  const gb = p.gachaBonuses;
+  const tr = p.traits || {};
+
+  let maxHp = p.baseMaxHp + (p.level - 1) * 12 + gb.hp;
+  let dmg = p.baseDamage + gb.dmg;
+  let maxSpd = p.baseMaxSpeed + gb.speed;
+  let turnSpd = p.baseTurnSpeed + gb.turn;
+  let reload = p.baseReloadTime * gb.reloadMult;
+  let lifesteal = gb.lifesteal;
+  let armor = gb.armor;
   let mass = p.isElite ? 1.35 : 1.0;
 
   if (p.shipClass === 'juggernaut') { maxHp += 95; armor += 0.20; mass = 1.65; }
   if (p.shipClass === 'phantom') { maxSpd += 1.0; turnSpd += 0.009; mass = 0.78; }
-  if (p.shipClass === 'necromancer') { maxHp += 45; dmg += 4.5; lifesteal += 0.40; mass = 1.1; }
+  if (p.shipClass === 'necromancer') { maxHp += 45; dmg += 4.5; lifesteal += 0.35; mass = 1.1; }
   if (p.shipClass === 'stormcaller') { maxHp += 55; dmg += 4.5; reload *= 0.90; mass = 1.05; }
 
+  const synergies = [];
+
+  // SINERGIE DI ARCHEOTIPO GACHA (2 e 4 Pezzi della stessa Categoria!)
+  if (tr.artillery >= 2) {
+    dmg *= 1.15;
+    synergies.push(tr.artillery >= 4
+      ? '🔥 Artiglieria (4): Colpi Esplosivi AoE!'
+      : '🔥 Artiglieria (2): +15% Danno');
+  }
+  if (tr.colossus >= 2) {
+    maxHp += 70;
+    armor += 0.10;
+    mass += 0.25;
+    synergies.push(tr.colossus >= 4
+      ? '🛡️ Colosso (4): Corazza di Spine (35% Riflesso)!'
+      : '🛡️ Colosso (2): +70 HP & +10% Corazza');
+  }
+  if (tr.tempest >= 2) {
+    maxSpd *= 1.12;
+    reload *= 0.85;
+    synergies.push(tr.tempest >= 4
+      ? '⚡ Tempesta (4): Fulmine Automatico ogni 3ª salva!'
+      : '⚡ Tempesta (2): +12% Vel & -15% Ricarica');
+  }
+  if (tr.cursed >= 2) {
+    lifesteal += 0.15;
+    synergies.push(tr.cursed >= 4
+      ? '💀 Dannati (4): 2 Teschi Homing ogni 2ª salva!'
+      : '💀 Dannati (2): +15% Rubavita & Magnete');
+  }
+  if (tr.fortune >= 2) {
+    synergies.push(tr.fortune >= 4
+      ? '🪙 Fortuna (4): I Critici curano +12 HP e danno +4 🪙!'
+      : '🪙 Fortuna (2): +18% Colpo Critico (2x)');
+  }
+
+  // Reliquie Maledette in mare
   const ids = new Set();
   p.inventory.forEach(r => {
     ids.add(r.id);
@@ -565,17 +771,16 @@ function recalculateShipStats(p) {
     }
   });
 
-  const synergies = [];
   if (ids.has('chalice') && ids.has('lantern')) {
-    synergies.push('🩸🔥 Patto del Vampiro (+15% Danno)');
+    synergies.push('🩸🔥 Set Reliquie: Patto del Vampiro');
     dmg *= 1.15;
   }
   if (ids.has('bone') && ids.has('leviathan_heart')) {
-    synergies.push('🦴👑 Fortezza Immortale (+15% Corazza)');
+    synergies.push('🦴👑 Set Reliquie: Fortezza Immortale');
     armor += 0.15;
   }
   if (ids.has('powder') && ids.has('compass')) {
-    synergies.push('⚡🌬️ Tempesta Perfetta (+Velocità & Ricarica)');
+    synergies.push('⚡🌬️ Set Reliquie: Tempesta Perfetta');
     maxSpd += 0.4;
     reload *= 0.92;
   }
@@ -586,9 +791,11 @@ function recalculateShipStats(p) {
   else p.hp = Math.min(p.maxHp, p.hp);
 
   p.damage = dmg;
-  p.maxSpeed = maxSpd;
+  p.maxSpeed = Math.min(9.8, maxSpd);
   p.turnSpeed = turnSpd;
-  p.reloadTime = Math.max(360, Math.round(reload));
+  p.reloadTime = Math.max(340, Math.round(reload));
+  p.harpoonCd = Math.max(3500, Math.round(p.baseHarpoonCd * gb.harpoonCdMult));
+  p.abilityCd = Math.max(4000, Math.round(p.baseAbilityCd * gb.abilityCdMult));
   p.lifestealBonus = Math.min(0.60, lifesteal);
   p.armorBonus = Math.min(0.65, armor);
   p.mass = mass;
@@ -680,6 +887,7 @@ function fireBroadsides(ship) {
   const now = Date.now();
   if (now - ship.lastShot < ship.reloadTime) return;
   ship.lastShot = now;
+  ship.shotsFiredCount = (ship.shotsFiredCount || 0) + 1;
 
   if (ship.isRepairing) interruptRepair(ship);
 
@@ -695,19 +903,28 @@ function fireBroadsides(ship) {
   const isHellfire = ship.hellfireCharged;
   ship.hellfireCharged = false;
 
-  const sides = [-Math.PI / 2, Math.PI / 2];
-  const spreadAngles = ship.shipClass === 'necromancer'
-    ? [-0.22, -0.11, 0, 0.11, 0.22]
-    : [-0.14, 0, 0.14];
+  // Numero dinamico di cannoni per fianco (Base 3 + Negromante + Carte Gacha ExtraCannons!)
+  const baseCannons = ship.shipClass === 'necromancer' ? 5 : 3;
+  const totalCannonsPerSide = Math.min(8, baseCannons + (ship.gachaBonuses.extraCannons || 0));
+  const spreadAngles = [];
+  const maxSpread = 0.14 + (totalCannonsPerSide - 3) * 0.045;
+  for (let c = 0; c < totalCannonsPerSide; c++) {
+    const frac = totalCannonsPerSide === 1 ? 0 : (c / (totalCannonsPerSide - 1)) * 2 - 1;
+    spreadAngles.push(frac * maxSpread);
+  }
 
+  const sides = [-Math.PI / 2, Math.PI / 2];
   const weatherSpdBonus = lobbyState.weather === 'gale' ? 2.0 : 0;
-  const bulletSpeed = (ship.inventory.some(r => r.id === 'powder') ? 15.5 : 13.5) + weatherSpdBonus;
+  const bulletSpeed = (ship.inventory.some(r => r.id === 'powder') ? 15.5 : 13.5) + weatherSpdBonus + (ship.gachaBonuses.bulletSpeed || 0);
 
   const necroBroadsideBalance = ship.shipClass === 'necromancer' ? 0.80 : 1.0;
   const dmgMult = (isHellfire ? 1.45 : 1.0) * ambushMult * necroBroadsideBalance;
 
   const shipVelX = Math.cos(ship.angle) * ship.speed + ship.momX;
   const shipVelY = Math.sin(ship.angle) * ship.speed + ship.momY;
+
+  const isExplosive = (ship.traits && ship.traits.artillery >= 4);
+  const bRadius = Math.round((4.5 * (1 + (ship.gachaBonuses.bulletSize || 0))) * 10) / 10;
 
   sides.forEach(sideOffset => {
     spreadAngles.forEach(spread => {
@@ -717,31 +934,72 @@ function fireBroadsides(ship) {
         isBossBullet: false,
         homing: false,
         isHarpoon: false,
-        shockOnHit: ship.shipClass === 'stormcaller',
+        explosive: isExplosive,
+        radius: bRadius,
+        shockOnHit: ship.shipClass === 'stormcaller' || ship.gachaBonuses.forceShock,
         lifestealRatio: ship.lifestealBonus,
         x: Math.round(ship.x + Math.cos(fireAngle) * 30),
         y: Math.round(ship.y + Math.sin(fireAngle) * 30),
         vx: Math.cos(fireAngle) * bulletSpeed + shipVelX * 0.3,
         vy: Math.sin(fireAngle) * bulletSpeed + shipVelY * 0.3,
         damage: ship.damage * dmgMult,
-        color: getSkinBulletColor(ship.skin, ship.shipClass, isHellfire),
+        color: isExplosive ? '#fb923c' : getSkinBulletColor(ship.skin, ship.shipClass, isHellfire),
         life: 58
       });
     });
   });
 
+  // SINERGIA TEMPESTA (4 Pezzi): Ogni 3ª bordata scarica un Fulmine Automatico sul nemico più vicino!
+  if (ship.traits && ship.traits.tempest >= 4 && ship.shotsFiredCount % 3 === 0) {
+    let closest = null;
+    let minD = 350;
+    for (let id in players) {
+      if (id === ship.id) continue;
+      const t = players[id];
+      const d = Math.hypot(t.x - ship.x, t.y - ship.y);
+      if (d < minD) { minD = d; closest = t; }
+    }
+    if (closest) {
+      const zapDmg = Math.round(ship.damage * 1.15);
+      closest.hp -= zapDmg;
+      closest.miniShockUntil = now + 900;
+      emitDamageNumber(closest.x, closest.y - 20, zapDmg, '#38bdf8', '⚡ ');
+      io.emit('lightningFx', {
+        fromX: Math.round(ship.x),
+        fromY: Math.round(ship.y),
+        targets: [{ x: Math.round(closest.x), y: Math.round(closest.y) }]
+      });
+    }
+  }
+
+  // SINERGIA DANNATI (4 Pezzi) o Carta Mitica Trono di Caronte: Evoca Teschi Spettrali Homing!
+  const skullCount = ((ship.traits && ship.traits.cursed >= 4 && ship.shotsFiredCount % 2 === 0) ? 2 : 0) + (ship.gachaBonuses.bonusHomingSkull || 0);
+  for (let s = 0; s < skullCount; s++) {
+    const a = ship.angle + (s % 2 === 0 ? 0.5 : -0.5);
+    bullets.push({
+      ownerId: ship.id,
+      isBossBullet: false,
+      homing: true,
+      isHarpoon: false,
+      radius: 6.5,
+      lifestealRatio: ship.lifestealBonus,
+      x: Math.round(ship.x + Math.cos(a) * 34),
+      y: Math.round(ship.y + Math.sin(a) * 34),
+      vx: Math.cos(a) * 9.5,
+      vy: Math.sin(a) * 9.5,
+      damage: ship.damage * 0.85,
+      color: '#e879f9',
+      life: 85
+    });
+  }
+
   io.emit('cannonFired', { x: Math.round(ship.x), y: Math.round(ship.y), id: ship.id });
 }
 
-// =========================================================
-// ARPIONE DIREZIONALE AL MOUSE & SGANCIO CAVO [V]
-// =========================================================
 function fireHarpoon(ship, targetAngle = null) {
   if (lobbyState.phase === 'intermission') return;
   const now = Date.now();
 
-  // Se il cavo è già agganciato a uno scoglio o a una nave, premere [V] TAGLIA LA CORDA
-  // permettendoti di schizzare via per inerzia lungo la tangente!
   if (ship.tether) {
     ship.tether = null;
     io.emit('dmgNum', { x: Math.round(ship.x), y: Math.round(ship.y - 35), text: '✂️ Cavo Sganciato!', color: '#fde047' });
@@ -761,6 +1019,7 @@ function fireHarpoon(ship, targetAngle = null) {
     isBossBullet: false,
     homing: false,
     isHarpoon: true,
+    radius: 6,
     lifestealRatio: 0,
     x: Math.round(ship.x + Math.cos(fireAngle) * 34),
     y: Math.round(ship.y + Math.sin(fireAngle) * 34),
@@ -768,7 +1027,7 @@ function fireHarpoon(ship, targetAngle = null) {
     vy: Math.sin(fireAngle) * speed,
     damage: 22,
     color: '#fde047',
-    life: 24 // ~528px di portata verso il cursore
+    life: 24
   });
 
   io.emit('dmgNum', { x: Math.round(ship.x), y: Math.round(ship.y - 30), text: '🪝 Arpione!', color: '#fde047' });
@@ -850,6 +1109,7 @@ function activateAbility(ship) {
         isBossBullet: false,
         homing: true,
         isHarpoon: false,
+        radius: 6.5,
         lifestealRatio: Math.min(0.60, 0.50 + ship.lifestealBonus),
         x: Math.round(ship.x + Math.cos(a) * 36),
         y: Math.round(ship.y + Math.sin(a) * 36),
@@ -918,10 +1178,10 @@ function applyClassEvolution(p, chosenClass) {
   if (!['juggernaut', 'phantom', 'necromancer', 'stormcaller'].includes(chosenClass)) return;
 
   p.shipClass = chosenClass;
-  if (chosenClass === 'juggernaut') p.abilityCd = 8000;
-  else if (chosenClass === 'phantom') p.abilityCd = 10500;
-  else if (chosenClass === 'necromancer') p.abilityCd = 9500;
-  else if (chosenClass === 'stormcaller') p.abilityCd = 8500;
+  if (chosenClass === 'juggernaut') p.baseAbilityCd = 8000;
+  else if (chosenClass === 'phantom') p.baseAbilityCd = 10500;
+  else if (chosenClass === 'necromancer') p.baseAbilityCd = 9500;
+  else if (chosenClass === 'stormcaller') p.baseAbilityCd = 8500;
 
   recalculateShipStats(p);
   p.hp = p.maxHp;
@@ -1026,15 +1286,28 @@ io.on('connection', (socket) => {
     if (players[socket.id]) applyClassEvolution(players[socket.id], chosenClass);
   });
 
-  socket.on('upgradeStat', (stat) => {
+  // SELEZIONE CARTA GACHA ROGUELIKE (Tasti 1, 2, 3 o Click)
+  socket.on('selectDraftCard', (cardIdx) => {
     const p = players[socket.id];
-    if (!p || p.skillPoints <= 0) return;
-    if (!['hull', 'cannons', 'sails', 'reload'].includes(stat)) return;
-    if ((p.statUpgrades[stat] || 0) >= 5) return;
+    if (!p || !p.currentDraft) return;
+    const idx = Number(cardIdx);
+    if (idx < 0 || idx >= p.currentDraft.length) return;
 
-    p.skillPoints--;
-    p.statUpgrades[stat]++;
-    recalculateShipStats(p);
+    const chosenCard = p.currentDraft[idx];
+    p.currentDraft = null;
+    applyGachaCardToShip(p, chosenCard);
+
+    // Se aveva accumulato altri level up in coda, lancia subito la prossima estrazione!
+    triggerNextDraftIfAvailable(p);
+  });
+
+  // REROLL DELLE 3 CARTE GACHA (Tasto G)
+  socket.on('rerollDraft', () => {
+    const p = players[socket.id];
+    if (!p || !p.currentDraft || p.rerollsLeft <= 0) return;
+    p.rerollsLeft--;
+    p.currentDraft = generateDraftOptions(p);
+    socket.emit('draftRolled', { options: p.currentDraft, rerollsLeft: p.rerollsLeft });
   });
 
   socket.on('disconnect', () => {
@@ -1048,16 +1321,8 @@ function updateBotAI(bot) {
     const classes = ['juggernaut', 'phantom', 'necromancer', 'stormcaller'];
     applyClassEvolution(bot, classes[Math.floor(Math.random() * classes.length)]);
   }
-  if (bot.skillPoints > 0) {
-    const availableStats = ['hull', 'cannons', 'sails', 'reload'].filter(s => bot.statUpgrades[s] < 5);
-    if (availableStats.length > 0) {
-      const st = availableStats[Math.floor(Math.random() * availableStats.length)];
-      bot.skillPoints--;
-      bot.statUpgrades[st]++;
-      recalculateShipStats(bot);
-    } else {
-      bot.skillPoints = 0;
-    }
+  if (bot.draftQueue > 0) {
+    triggerNextDraftIfAvailable(bot);
   }
 
   if (bot.hp < bot.maxHp * 0.4) startShipRepair(bot);
@@ -1362,6 +1627,7 @@ setInterval(() => {
             isBossBullet: true,
             homing: false,
             isHarpoon: false,
+            radius: 7.5,
             x: Math.round(boss.x + Math.cos(a) * 70),
             y: Math.round(boss.y + Math.sin(a) * 70),
             vx: Math.cos(a) * speed,
@@ -1384,9 +1650,7 @@ setInterval(() => {
     });
   }
 
-  // =========================================================
-  // FISICA NAVI + CAVO RAMPINO INERZIALE (PENDOLO / FIONDA)
-  // =========================================================
+  // Aggiorna Navi
   for (let id in players) {
     const p = players[id];
     if (p.isBot) updateBotAI(p);
@@ -1420,7 +1684,7 @@ setInterval(() => {
       }
     }
 
-    // GESTIONE FISICA DEL CAVO ARPIONE (TETHER)
+    // Fisica Cavo Rampino (Tether)
     if (p.tether) {
       if (now >= p.tether.until) {
         p.tether = null;
@@ -1429,29 +1693,22 @@ setInterval(() => {
         const dy = p.tether.y - p.y;
         const dist = Math.hypot(dx, dy);
 
-        // Se sei arrivato a sfiorare lo scoglio, sgancia automaticamente il cavo lasciandoti l'inerzia della fionda!
         if (dist <= (p.tether.minReleaseDist || 85)) {
           p.tether = null;
         } else {
           const nx = dx / dist;
           const ny = dy / dist;
-
-          // Determina il lato di rotazione (prodotto vettoriale tra la prua della nave e il cavo)
           const cross = Math.cos(p.angle) * ny - Math.sin(p.angle) * nx;
           const swingDir = cross >= 0 ? 1 : -1;
-
-          // Vettore tangenziale (perpendicolare al cavo) per l'effetto pendolo/fionda attorno allo scoglio
           const tx = -ny * swingDir;
           const ty = nx * swingDir;
 
-          // Forza centripeta del verricello + spinta tangenziale d'inerzia
           const pullForce = 0.85;
           const swingForce = 0.72 + (Math.abs(p.speed) / p.maxSpeed) * 0.55;
 
           p.momX += nx * pullForce + tx * swingForce;
           p.momY += ny * pullForce + ty * swingForce;
 
-          // Ruota gradualmente la prua lungo la traiettoria tangenziale della derapata
           const velAngle = Math.atan2(Math.sin(p.angle) * p.speed + p.momY, Math.cos(p.angle) * p.speed + p.momX);
           const diffA = Math.atan2(Math.sin(velAngle - p.angle), Math.cos(velAngle - p.angle));
           p.angle += diffA * 0.14;
@@ -1472,7 +1729,6 @@ setInterval(() => {
           } else {
             const nx = dx / dist;
             const ny = dy / dist;
-            // Trazione reciproca basata sulla massa dello scafo!
             const totalMass = p.mass + target.mass;
             const myPull = (target.mass / totalMass) * 1.45;
             const targetPull = (p.mass / totalMass) * 1.65;
@@ -1578,20 +1834,17 @@ setInterval(() => {
     if (p.inputs.left) p.angle -= p.turnSpeed;
     if (p.inputs.right) p.angle += p.turnSpeed;
 
-    // Decadimento morbido dell'inerzia sull'acqua (permette derapate fluide!)
     p.momX *= 0.91;
     p.momY *= 0.91;
     if (Math.abs(p.momX) < 0.02) p.momX = 0;
     if (Math.abs(p.momY) < 0.02) p.momY = 0;
 
-    // Movimento risultante = Spinta Vele + Vettore d'Inerzia
     p.x += Math.cos(p.angle) * p.speed + p.momX;
     p.y += Math.sin(p.angle) * p.speed + p.momY;
 
     p.x = Math.max(80, Math.min(MAP_SIZE - 80, p.x));
     p.y = Math.max(80, Math.min(MAP_SIZE - 80, p.y));
 
-    // Collisione con Scogli + Rimbalzo elastico se stavi fiondando col rampino
     rocks.forEach(r => {
       const dx = p.x - r.x;
       const dy = p.y - r.y;
@@ -1604,7 +1857,6 @@ setInterval(() => {
         p.x += nx * push;
         p.y += ny * push;
 
-        // Proietta il momento lungo la tangente dello scoglio così scivoli invece di bloccarti!
         const dot = p.momX * nx + p.momY * ny;
         if (dot < 0) {
           p.momX -= nx * dot * 1.1;
@@ -1630,7 +1882,8 @@ setInterval(() => {
 
         const totalVel = Math.hypot(Math.cos(p.angle) * p.speed + p.momX, Math.sin(p.angle) * p.speed + p.momY);
         if (now > p.ramCooldownUntil && totalVel > 3.6) {
-          const ramDmg = isJuggernautCharging ? 58 : (p.shipClass === 'juggernaut' ? 30 : 12);
+          const ramMult = 1 + (p.gachaBonuses.ramMult || 0) + (p.traits.colossus >= 4 ? 0.5 : 0);
+          const ramDmg = Math.round((isJuggernautCharging ? 58 : (p.shipClass === 'juggernaut' ? 30 : 12)) * ramMult);
           other.hp -= ramDmg;
           other.momX += (dx / dist) * 5.5;
           other.momY += (dy / dist) * 5.5;
@@ -1648,23 +1901,28 @@ setInterval(() => {
       p.hp -= lobbyState.phase === 'eclipse' ? 0.75 : 0.4;
     } else if (p.hp < p.maxHp) {
       const hasMythic = p.inventory.some(r => r.id === 'leviathan_heart');
-      p.hp = Math.min(p.maxHp, p.hp + (hasMythic ? 0.16 : 0.05));
+      const regenTick = (hasMythic ? 0.16 : 0.05) + (p.gachaBonuses.regen || 0);
+      p.hp = Math.min(p.maxHp, p.hp + regenTick);
     }
 
-    if (p.shipClass === 'necromancer') {
+    // Magnete Anime (Passiva Negromante o Carte Culto dei Dannati!)
+    const magnetRadius = (p.shipClass === 'necromancer' ? 220 : 0) + (p.gachaBonuses.magnet || 0) + (p.traits.cursed >= 2 ? 75 : 0);
+    if (magnetRadius > 0) {
       souls.forEach(s => {
         const d = Math.hypot(p.x - s.x, p.y - s.y);
-        if (d < 220 && d > 10) {
-          s.x = Math.round(s.x + ((p.x - s.x) / d) * 5.2);
-          s.y = Math.round(s.y + ((p.y - s.y) / d) * 5.2);
+        if (d < magnetRadius && d > 10) {
+          s.x = Math.round(s.x + ((p.x - s.x) / d) * 5.4);
+          s.y = Math.round(s.y + ((p.y - s.y) / d) * 5.4);
         }
       });
     }
 
+    // Raccolta Anime + Trigger Estrazione Gacha al Level Up!
     for (let i = souls.length - 1; i >= 0; i--) {
       const s = souls[i];
       if (Math.hypot(p.x - s.x, p.y - s.y) < 46) {
-        p.xp += s.value;
+        const xpGain = Math.round(s.value * (1 + (p.gachaBonuses.xpMult || 0)));
+        p.xp += xpGain;
         p.soulsCollected++;
         const healAmt = (s.isBossDrop ? 22 : 8) + (p.shipClass === 'necromancer' ? 5 : 0);
         p.hp = Math.min(p.maxHp, p.hp + healAmt);
@@ -1679,13 +1937,15 @@ setInterval(() => {
         while (p.xp >= p.maxXp) {
           p.xp -= p.maxXp;
           p.level++;
-          p.skillPoints++;
-          p.maxXp = Math.floor(p.maxXp * 1.32);
+          p.draftQueue++;
+          p.maxXp = Math.floor(p.maxXp * 1.30);
           leveledUp = true;
         }
         if (leveledUp) {
           recalculateShipStats(p);
-          p.hp = p.maxHp;
+          p.hp = Math.min(p.maxHp, p.hp + 25);
+          p.levelUpShieldUntil = now + 2200; // 2.2s di Scudo Invulnerabile da Level-Up mentre scegli la carta!
+          triggerNextDraftIfAvailable(p);
         }
       }
     }
@@ -1756,7 +2016,7 @@ setInterval(() => {
     }
   }
 
-  // Aggiorna Proiettili & Aggancio Fisico Rampino [V]
+  // Aggiorna Proiettili
   for (let i = bullets.length - 1; i >= 0; i--) {
     const b = bullets[i];
 
@@ -1790,7 +2050,6 @@ setInterval(() => {
       continue;
     }
 
-    // L'Arpione raccoglie al volo Reliquie o Casse Tattiche
     if (b.isHarpoon && players[b.ownerId]) {
       const shooter = players[b.ownerId];
       let hookedItem = false;
@@ -1820,7 +2079,6 @@ setInterval(() => {
       }
     }
 
-    // Impatto Barili Esplosivi
     let hitBarrel = false;
     if (!b.isBossBullet) {
       for (let brIdx = barrels.length - 1; brIdx >= 0; brIdx--) {
@@ -1839,7 +2097,6 @@ setInterval(() => {
       continue;
     }
 
-    // Impatto Scogli: Crea il vincolo fisico (Tether) per la derapata/fionda!
     let hitRock = false;
     for (let r of rocks) {
       if (Math.hypot(b.x - r.x, b.y - r.y) < r.radius) {
@@ -1910,7 +2167,6 @@ setInterval(() => {
       emitDamageNumber(b.x, b.y, b.damage, '#fbbf24');
       io.emit('hitEffect', { x: Math.round(b.x), y: Math.round(b.y) });
 
-      // Se arpioni il Boss, il cavo ti fionda verso di lui!
       if (b.isHarpoon && players[b.ownerId]) {
         players[b.ownerId].tether = {
           type: 'boss',
@@ -1965,18 +2221,64 @@ setInterval(() => {
       const target = players[id];
 
       if (target.shipClass === 'phantom' && now < target.activeBuffUntil) continue;
+      // Scudo di 2.2s quando sali di livello!
+      if (now < (target.levelUpShieldUntil || 0)) continue;
 
-      if (Math.hypot(target.x - b.x, target.y - b.y) < 35) {
+      if (Math.hypot(target.x - b.x, target.y - b.y) < 32 + (b.radius || 4.5)) {
+        // CONTROLLO SCHIVATA GACHA (Dodge Chance)
+        const dodgeChance = Math.min(0.45, (target.gachaBonuses && target.gachaBonuses.dodge) || 0);
+        if (dodgeChance > 0 && Math.random() < dodgeChance) {
+          io.emit('dmgNum', { x: Math.round(target.x), y: Math.round(target.y - 25), text: '💨 SCHIVATO!', color: '#38bdf8' });
+          bullets.splice(i, 1);
+          break;
+        }
+
+        const shooter = players[b.ownerId];
+        // CONTROLLO COLPO CRITICO GACHA (2x Danno!)
+        let critMult = 1.0;
+        let isCrit = false;
+        if (shooter) {
+          const critChance = Math.min(0.75, (shooter.gachaBonuses.crit || 0) + (shooter.traits.fortune >= 2 ? 0.18 : 0));
+          if (critChance > 0 && Math.random() < critChance) {
+            critMult = 2.0;
+            isCrit = true;
+            // Sinergia Fortuna (4 Pezzi): I Critici curano +12 HP e danno +4 Dobloni!
+            if (shooter.traits.fortune >= 4) {
+              shooter.hp = Math.min(shooter.maxHp, shooter.hp + 12);
+              if (!shooter.isBot) io.to(shooter.id).emit('questEvent', { type: 'crit_jackpot', amount: 1, doubloons: 4 });
+            }
+          }
+        }
+
         const dmgReduction = Math.min(0.65, target.armorBonus);
-        const finalDmg = b.damage * (1 - dmgReduction);
+        const finalDmg = b.damage * critMult * (1 - dmgReduction);
         target.hp -= finalDmg;
         target.extractProgress = 0;
 
         revealShipLantern(target, now);
 
-        // Se colpito dall'Arpione [V], crea il Cavo Teso tra le due navi!
-        if (b.isHarpoon && players[b.ownerId]) {
-          const shooter = players[b.ownerId];
+        // SINERGIA COLOSSO (4 Pezzi) o Spine: Riflette parte del danno contro chi ha sparato!
+        const thornsRatio = (target.gachaBonuses.thorns || 0) + (target.traits.colossus >= 4 ? 0.35 : 0);
+        if (thornsRatio > 0 && shooter) {
+          const reflectDmg = Math.round(finalDmg * thornsRatio);
+          shooter.hp -= reflectDmg;
+          emitDamageNumber(shooter.x, shooter.y - 15, reflectDmg, '#a3e635', '🌵 ');
+        }
+
+        // SINERGIA ARTIGLIERIA (4 Pezzi): Bordata Esplosiva AoE!
+        if (b.explosive) {
+          for (let nearId in players) {
+            if (nearId === b.ownerId || nearId === target.id) continue;
+            const nearShip = players[nearId];
+            if (Math.hypot(nearShip.x - b.x, nearShip.y - b.y) < 115) {
+              const splashDmg = Math.round(finalDmg * 0.35);
+              nearShip.hp -= splashDmg;
+              emitDamageNumber(nearShip.x, nearShip.y - 15, splashDmg, '#fb923c', '💥 ');
+            }
+          }
+        }
+
+        if (b.isHarpoon && shooter) {
           shooter.tether = {
             type: 'ship',
             targetId: target.id,
@@ -1986,6 +2288,8 @@ setInterval(() => {
           };
           target.miniShockUntil = now + 950;
           emitDamageNumber(target.x, target.y - 30, finalDmg, '#fde047', '🪝 ARPIONATO! -');
+        } else if (isCrit) {
+          emitDamageNumber(target.x, target.y - 22, finalDmg, '#facc15', '💥 CRITICO! -');
         } else {
           emitDamageNumber(target.x, target.y - 15, finalDmg, '#f87171');
         }
@@ -1998,47 +2302,45 @@ setInterval(() => {
 
         io.emit('hitEffect', { x: Math.round(b.x), y: Math.round(b.y) });
 
-        if (b.lifestealRatio > 0 && players[b.ownerId]) {
-          const healer = players[b.ownerId];
+        if (b.lifestealRatio > 0 && shooter) {
           const heal = Math.round(finalDmg * b.lifestealRatio);
-          healer.hp = Math.min(healer.maxHp, healer.hp + heal);
-          emitDamageNumber(healer.x, healer.y - 20, heal, '#4ade80', '+');
+          shooter.hp = Math.min(shooter.maxHp, shooter.hp + heal);
+          emitDamageNumber(shooter.x, shooter.y - 20, heal, '#4ade80', '+');
         }
 
-        if (target.hp <= 0 && players[b.ownerId]) {
-          const killer = players[b.ownerId];
-          killer.kills++;
-          killer.xp += target.isElite ? 140 : 80;
+        if (target.hp <= 0 && shooter) {
+          shooter.kills++;
+          shooter.xp += target.isElite ? 140 : 80;
 
           io.emit('killfeed', {
-            killer: killer.name,
+            killer: shooter.name,
             victim: target.name,
-            weapon: b.isHarpoon ? '🪝 Arpione' : '💣 Bordata'
+            weapon: b.isHarpoon ? '🪝 Arpione' : (isCrit ? '💥 Colpo Critico' : '💣 Bordata')
           });
 
           if (lobbyState.weather === 'bloodfog') {
-            const bloodHeal = Math.round(killer.maxHp * 0.3);
-            killer.hp = Math.min(killer.maxHp, killer.hp + bloodHeal);
-            emitDamageNumber(killer.x, killer.y - 25, bloodHeal, '#f43f5e', '🩸 +');
+            const bloodHeal = Math.round(shooter.maxHp * 0.3);
+            shooter.hp = Math.min(shooter.maxHp, shooter.hp + bloodHeal);
+            emitDamageNumber(shooter.x, shooter.y - 25, bloodHeal, '#f43f5e', '🩸 +');
           }
 
           let bountyBonus = (target.isMostWanted ? 80 : (target.isElite ? 45 : 10)) * rewardMult;
           if (target.isMostWanted) {
             io.emit('worldAnnouncement', {
-              title: `💀 TAGLIA RISCOSSA! ${killer.name.toUpperCase()} HA AFFONDATO IL TERRORE DEI MARI!`,
+              title: `💀 TAGLIA RISCOSSA! ${shooter.name.toUpperCase()} HA AFFONDATO IL TERRORE DEI MARI!`,
               subtitle: `Incassa una taglia speciale di +${bountyBonus} Dobloni Abissali!`,
               color: '#fbbf24'
             });
           } else if (target.isElite) {
             io.emit('worldAnnouncement', {
-              title: `👹 ${killer.name.toUpperCase()} HA SCONFITTO IL CAPITANO RINNEGATO ELITE!`,
+              title: `👹 ${shooter.name.toUpperCase()} HA SCONFITTO IL CAPITANO RINNEGATO ELITE!`,
               subtitle: `Ottiene +${bountyBonus} Dobloni e Reliquie Maledette!`,
               color: '#fb7185'
             });
           }
 
-          if (!killer.isBot) {
-            io.to(killer.id).emit('questEvent', { type: 'kill', amount: 1, doubloons: bountyBonus });
+          if (!shooter.isBot) {
+            io.to(shooter.id).emit('questEvent', { type: 'kill', amount: 1, doubloons: bountyBonus });
           }
         }
         bullets.splice(i, 1);
@@ -2069,5 +2371,5 @@ setInterval(() => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  console.log(`🏴‍☠️ Abyssal Sails RPG v1.2 (Mouse-Aimed Harpoon & Momentum Physics) attivo su http://localhost:${PORT}`);
+  console.log(`🏴‍☠️ Abyssal Sails RPG v1.3 (Gacha Roguelike Draft & Synergies) attivo su http://localhost:${PORT}`);
 });
